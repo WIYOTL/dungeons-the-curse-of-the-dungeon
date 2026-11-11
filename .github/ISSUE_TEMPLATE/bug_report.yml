@@ -1,0 +1,46 @@
+name: "Bug report / Signalement de bug"
+description: "Report a reproducible problem / Signaler un problème reproductible"
+title: "[BUG] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not include passwords, tokens, or personal data.
+        N’incluez pas de mot de passe, jeton ou donnée personnelle.
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce / Étapes de reproduction"
+      description: "What did you do? / Quelles actions avez-vous effectuées ?"
+      placeholder: "1. ...\n2. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected result / Résultat attendu"
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual result / Résultat obtenu"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: "Device and browser / Appareil et navigateur"
+      description: "Include OS and browser version if known / Précisez le système et la version du navigateur si possible."
+      placeholder: "iPhone, iOS version, Safari version / Windows, Chrome version"
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots or additional details / Captures ou détails supplémentaires"
+      description: "Attach screenshots if they contain no private information / Joignez des captures sans données privées."
+    validations:
+      required: false

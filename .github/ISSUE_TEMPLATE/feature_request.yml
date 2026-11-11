@@ -1,0 +1,38 @@
+name: "Feature request / Proposition d’amélioration"
+description: "Suggest a player-focused improvement / Proposer une amélioration utile aux joueurs"
+title: "[FEATURE] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem or opportunity / Problème ou opportunité"
+      description: "What player need should this address? / Quel besoin des joueurs cette proposition couvre-t-elle ?"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "Proposed solution / Solution proposée"
+      description: "Describe the experience you would like / Décrivez l’expérience souhaitée."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives and context / Alternatives et contexte"
+      description: "Other solutions, examples, or mockups / Autres solutions, exemples ou maquettes."
+    validations:
+      required: false
+  - type: dropdown
+    id: platform
+    attributes:
+      label: "Platform / Plateforme"
+      options:
+        - Desktop / Ordinateur
+        - Mobile / Téléphone ou tablette
+        - Both / Les deux
+        - Not applicable / Sans objet
+    validations:
+      required: true

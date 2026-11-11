@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Security vulnerability / Vulnérabilité de sécurité"
+    url: "mailto:contact.wiyotl@gmail.com?subject=Security%20report"
+    about: "Report security issues privately; do not create a public issue. / Signalez les problèmes de sécurité en privé."
+  - name: "Support / Assistance"
+    url: "mailto:contact.wiyotl@gmail.com"
+    about: "For private account or support questions. / Pour les demandes privées d’assistance."

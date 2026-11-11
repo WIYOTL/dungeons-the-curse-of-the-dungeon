@@ -116,3 +116,17 @@ npm run build
 | `service-worker.js`, `manifest.webmanifest` | PWA support |
 
 For publishing or Supabase setup, see the [deployment guide](DEPLOYMENT.md).
+
+## Community and license
+
+- [Contributing guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security policy](SECURITY.md)
+- [Apache-2.0 license](LICENSE)
+- [Report a bug or suggest a feature](https://github.com/WIYOTL/dungeons-the-curse-of-the-dungeon/issues)
+
+The contents of this repository are distributed under the Apache-2.0 license, except for the Wiyotl name, trademarks, and logos, which are not licensed by it.
+
+---
+
+**Wiyotl est une marque déposée. Tous droits réservés.**
