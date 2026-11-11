@@ -1,51 +1,94 @@
-# Dungeons: The Curse of the Dungeon
+# Dungeons: The Curse of the Dungeon <sup>WEB Edition</sup>
 
-[Français](README.md) · [English](README_en.md)
+[Français](README.md) · **English** · **Version 1.0.0**
 
-**Play online:** [wiyotl.github.io/dungeons-the-curse-of-the-dungeon](https://wiyotl.github.io/dungeons-the-curse-of-the-dungeon/)
+> **Enter the dungeon. Break the curse.**<br>
+> A fantasy action game you can play in your browser on desktop or mobile.
 
-A fantasy action game you can play in a browser on desktop or mobile. Explore the dungeons, fight their guardians, and lift the curse.
+<p align="center">
+  <a href="https://wiyotl.github.io/dungeons-the-curse-of-the-dungeon/"><strong>PLAY NOW</strong></a>
+  &nbsp;·&nbsp;
+  <a href="privacy.html">Privacy</a>
+  &nbsp;·&nbsp;
+  <a href="mailto:contact.wiyotl@gmail.com">Support</a>
+</p>
 
-## Features
+## Screenshots
 
-- A campaign with **3 worlds and 21 levels**, including bosses and **7 secret rooms**.
-- Real-time combat, multiple hero archetypes, upgrades, and a shop.
-- Shareable seeded daily challenges, Endless mode, and **New Game+**.
-- An interactive tutorial and accessibility options: high contrast, larger text, and reduced motion.
-- Installable as a Progressive Web App (PWA).
+<p align="center">
+  <img src="screenshots/title-screen.png" alt="Dungeons: The Curse of the Dungeon title screen" width="49%">
+  <img src="screenshots/desktop-gameplay.png" alt="Campaign combat in the first world on desktop" width="49%">
+</p>
+<p align="center"><em>Title screen · Desktop campaign</em></p>
+
+<p align="center">
+  <img src="screenshots/mobile-gameplay.png" alt="Portrait mobile gameplay with on-screen joystick and touch controls" width="30%">
+</p>
+<p align="center"><em>Portrait mobile gameplay</em></p>
+
+## The adventure
+
+Explore **3 worlds and 21 levels**, face their guardians, and uncover **7 secret rooms**. Master the combat, choose your approach, and improve your hero as you push deeper into the dungeon.
+
+### What awaits
+
+- **A full campaign** with levels, enemies, bosses, and persistent progression.
+- **Action combat** with attacks, quick dashes, parries, and interactions.
+- **Three hero archetypes** — Vanguard, Duelist, and Ranger — for different play styles.
+- **Upgrades and a shop** to shape your progression.
+- **Shareable seeded daily challenges**: invite friends to tackle the same setup.
+- **Endless mode and mastery goals**, followed by **New Game+** after the campaign.
+- An **interactive tutorial** and accessibility options: high contrast, larger text, and reduced motion.
+- **Completion tracking** to guide your 100% run across the campaign, secrets, missions, and bestiary.
+
+## Play on mobile
+
+The playfield adapts to your screen and includes an **on-screen joystick** plus dedicated buttons for attack, dash, parry, interaction, and pause. Both portrait and landscape layouts are supported.
+
+On iPhone or iPad:
+
+1. Open the [HTTPS game site](https://wiyotl.github.io/dungeons-the-curse-of-the-dungeon/) in Safari.
+2. Tap **Share**, then **Add to Home Screen** to install it as a web app.
+3. Launch the game once while online so its files can load and be cached.
+
+After the first load, the PWA can keep the game shell available offline. Features that require an internet connection, including any cloud functionality, remain unavailable offline.
 
 ## Controls
 
 | Action | Keyboard |
 | --- | --- |
-| Move | Z, Q, S, D or arrow keys |
+| Move | ZQSD, WASD, or arrow keys |
 | Attack | Space |
 | Interact | E |
 | Parry | F |
 | Dash | Shift |
 | Pause | P or Esc |
 
-On touchscreens, use the on-screen joystick and action buttons.
+On phones and tablets, use the on-screen joystick and action buttons.
 
 ## Run locally
 
-The game is static and does not require a backend to play. With Python 3:
+This is a static web app; no backend is required to play. Install Python 3 and start a local server from the project root:
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000/>. To test on a phone on the same Wi-Fi network, start the server with `python3 -m http.server 8000 --bind 0.0.0.0`, then open `http://<your-computer-IP>:8000/`. The computer and local server must stay on while testing this way.
+Open <http://localhost:8000/> in your browser. To test on a phone connected to the same Wi-Fi, start the server with:
 
-To play the published version, visit the [GitHub Pages site](https://wiyotl.github.io/dungeons-the-curse-of-the-dungeon/). You do not need to keep your computer running to access it.
+```sh
+python3 -m http.server 8000 --bind 0.0.0.0
+```
+
+Then open `http://<your-computer-IP>:8000/` on the phone. For local testing, keep the computer and server running. The GitHub Pages version is available without your computer.
 
 ## Progress and privacy
 
-Progress is saved locally in the browser. Optional Supabase cloud sync is **not configured by default**. See the [privacy policy](privacy.html) for information about data, privacy, and support.
+Progress is stored locally in the browser you play with, so it does not automatically sync between devices. Optional Supabase cloud saves are **disabled by default** and require separate configuration.
 
-The PWA must be opened online once to cache its files; some features still require an internet connection.
+Read the [privacy policy](privacy.html) for information about data and support. Cloud features require an internet connection.
 
-## Development and tests
+## Development
 
 Requirements: Node.js and npm.
 
@@ -56,6 +99,20 @@ npm test
 npm run build
 ```
 
-`npm test` runs unit tests and Playwright browser journeys. The [GitHub Actions workflow](.github/workflows/pages.yml) runs tests and the build before each Pages deployment.
+- `npm test` runs unit tests and Playwright browser journeys.
+- `npm run build` verifies scripts, the PWA manifest, and required files.
+- The [GitHub Actions workflow](.github/workflows/pages.yml) runs checks before publishing the site.
 
-See the [deployment guide](DEPLOYMENT.md) for publishing and cloud-save configuration details.
+### Project structure
+
+| Path | Purpose |
+| --- | --- |
+| `index.html` | Game, interface, and styles |
+| `js/` | Game engine, progression, saves, and gameplay systems |
+| `icons/` | App icons |
+| `screenshots/` | Screenshots featured in this README |
+| `e2e/`, `test/` | Browser and unit tests |
+| `privacy.html` | Privacy policy and support |
+| `service-worker.js`, `manifest.webmanifest` | PWA support |
+
+For publishing or Supabase setup, see the [deployment guide](DEPLOYMENT.md).
