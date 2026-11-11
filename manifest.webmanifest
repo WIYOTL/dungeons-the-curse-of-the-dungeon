@@ -1,0 +1,27 @@
+{
+  "id": "./",
+  "name": "Dungeons: The Curse of the Dungeon",
+  "short_name": "Dungeons",
+  "description": "Explorez des donjons, relevez des défis seedés et complétez la campagne.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#060709",
+  "background_color": "#060709",
+  "icons": [
+    {
+      "src": "./icons/dungeon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/dungeon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

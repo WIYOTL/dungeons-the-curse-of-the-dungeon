@@ -1,0 +1,15 @@
+{
+  "name": "dungeons-curse-of-the-dungeon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static browser game with PWA support and optional Supabase cloud saves",
+  "scripts": {
+    "build": "node scripts/verify-build.js",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test test/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

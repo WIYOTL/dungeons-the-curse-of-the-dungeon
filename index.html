@@ -1,0 +1,4038 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dungeons: The Curse of the Dungeon — Version 1.0.0</title>
+    <meta name="theme-color" content="#060709">
+    <meta name="description" content="Explorez les donjons, relevez des défis seedés et complétez la campagne dans ce jeu d’action gratuit.">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icons/dungeon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="./icons/dungeon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body.high-contrast { background-color: #000; color: #fff; }
+        body.high-contrast .overlay-screen, body.high-contrast .options-card,
+        body.high-contrast .phase3-card, body.high-contrast #ui {
+            border-color: #fff;
+            color: #fff;
+        }
+        body.large-text { font-size: 112.5%; }
+        body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+            transition-duration: 0.01ms !important;
+        }
+        [hidden] { display: none !important; }
+        .tutorial-dialog {
+            position: fixed;
+            inset: 0;
+            z-index: 5000;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, .86);
+        }
+        .tutorial-card {
+            width: min(520px, 100%);
+            padding: 28px;
+            border: 1px solid #66fcf1;
+            border-radius: 12px;
+            background: #10151b;
+            box-shadow: 0 0 35px rgba(102, 252, 241, .2);
+        }
+        .tutorial-card h2 { margin: 12px 0; color: #66fcf1; }
+        .tutorial-card p { line-height: 1.6; }
+        .tutorial-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+
+        body {
+            background-color: #060709;
+            color: #c5c6c7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* UI TOUJOURS FIXE ET VISIBLE */
+        h1, #ui, #boss-ui-container, #controls-info {
+            position: relative;
+            z-index: 2000;
+        }
+
+        h1 {
+            color: #66fcf1;
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(102, 252, 241, 0.4);
+        }
+        #ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 820px;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+            background: rgba(31, 40, 51, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(69, 162, 158, 0.5);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.7);
+        }
+        #boss-ui-container {
+            width: 820px;
+            margin-bottom: 8px;
+            background: rgba(45, 15, 60, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 6px 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(224, 86, 253, 0.6);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.7);
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #boss-ui-container.active {
+            display: flex;
+        }
+        .boss-name-tag {
+            color: #e056fd;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px rgba(224, 86, 253, 0.5);
+        }
+        #boss-hp-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #8e44ad, #e056fd);
+            transition: width 0.15s ease-out;
+        }
+
+        .ui-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ui-group span {
+            color: #66fcf1;
+            font-weight: bold;
+        }
+        .world-tag {
+            color: #f9d342 !important;
+            text-shadow: 0 0 8px rgba(249, 211, 66, 0.3);
+        }
+        .bar-container {
+            width: 80px;
+            height: 10px;
+            background: #0b0c10;
+            border: 1px solid rgba(69, 162, 158, 0.6);
+            border-radius: 3px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+        }
+        .boss-bar-container {
+            width: 350px;
+            height: 12px;
+            background: #0b0c10;
+            border: 1px solid rgba(224, 86, 253, 0.8);
+            border-radius: 3px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+        }
+        #hp-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.15s ease-out;
+        }
+        .canvas-wrapper {
+            position: relative;
+            z-index: 10;
+        }
+        canvas {
+            position: relative;
+            z-index: 1;
+            background-color: #0b0c10;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.9), 0 0 20px rgba(69, 162, 158, 0.1);
+            border: 2px solid #202b36;
+            border-radius: 6px;
+            display: block;
+        }
+        #notification-banner {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(102, 252, 241, 0.18);
+            border: 1.5px solid #66fcf1;
+            color: #66fcf1;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            box-shadow: 0 0 25px rgba(102, 252, 241, 0.4);
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+            z-index: 5001;
+            max-width: min(90vw, 620px);
+            text-align: center;
+        }
+        #notification-banner.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(5px);
+        }
+        #controls-info {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #8c92ac;
+            text-align: center;
+            background: rgba(6, 7, 9, 0.7);
+            padding: 4px 12px;
+            border-radius: 4px;
+        }
+
+        /* --- OVERLAYS --- */
+        .overlay-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, rgba(18, 24, 32, 0.94) 0%, rgba(6, 7, 9, 0.98) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        .overlay-screen.hidden {
+            display: none !important;
+        }
+        .ui-group[hidden] {
+            display: none;
+        }
+
+        /* Aucun ecran de menu ne doit pouvoir recouvrir le terrain pendant une partie. */
+        body.game-playing .overlay-screen {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            z-index: -1 !important;
+        }
+
+        /* Le terrain doit rester au-dessus de tout fond de menu pendant le jeu. */
+        body.game-playing .canvas-wrapper {
+            position: relative !important;
+            z-index: 4000 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        body.game-playing #gameCanvas {
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* TITLE SCREEN */
+        .title-hero-wrapper {
+            text-align: center;
+            margin-bottom: 45px;
+            position: relative;
+        }
+        .title-hero {
+            font-size: 5.2rem;
+            font-weight: 900;
+            color: #66fcf1;
+            letter-spacing: 12px;
+            text-shadow: 0 0 30px rgba(102, 252, 241, 0.5), 0 0 60px rgba(102, 252, 241, 0.2);
+            line-height: 1;
+        }
+        .title-subtitle {
+            font-size: 0.9rem;
+            color: #f9d342;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-top: 10px;
+            opacity: 0.85;
+        }
+        .title-legal {
+            position: absolute;
+            right: max(24px, env(safe-area-inset-right));
+            bottom: max(18px, env(safe-area-inset-bottom));
+            width: min(260px, calc(100vw - 190px));
+            margin: 0;
+            padding: 10px 14px 8px;
+            color: #aeb4bd;
+            font-size: .68rem;
+            line-height: 1.45;
+            text-align: right;
+            background: linear-gradient(135deg, rgba(11,12,16,.78), rgba(31,40,51,.5));
+            border: 1px solid rgba(102,252,241,.2);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.24);
+            backdrop-filter: blur(8px);
+        }
+        .title-edition {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 4px;
+            color: #66fcf1;
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+        }
+        .title-legal-note {
+            color: #aeb4bd;
+        }
+        .title-legal-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 4px 12px;
+            margin-top: 5px;
+        }
+        .title-legal-links a {
+            color: #66fcf1;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .title-legal-links a:focus-visible {
+            outline: 2px solid #f9d342;
+            outline-offset: 3px;
+        }
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 280px;
+        }
+        .title-menu-layout {
+            position: relative;
+            width: 280px;
+            margin: 0 auto;
+        }
+        .progression-side-panel {
+            position: absolute;
+            left: calc(100% + 22px);
+            top: 18px;
+            width: 220px;
+            padding: 18px;
+            border: 1px solid rgba(249, 211, 66, 0.65);
+            border-radius: 10px;
+            background: linear-gradient(160deg, rgba(54, 45, 22, 0.92), rgba(14, 19, 26, 0.96));
+            box-shadow: 0 0 24px rgba(249, 211, 66, 0.14), 0 10px 30px rgba(0, 0, 0, 0.55);
+        }
+        .progression-side-kicker {
+            color: #f9d342;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .progression-side-panel h2 {
+            color: #fff1b8;
+            font-size: 1.05rem;
+            letter-spacing: 1px;
+            line-height: 1.25;
+            margin-bottom: 8px;
+        }
+        .progression-side-panel p {
+            color: #bdeeed;
+            font-size: 0.73rem;
+            line-height: 1.45;
+            margin-bottom: 14px;
+        }
+        .progression-side-panel .progression-menu-button {
+            width: 100%;
+            min-height: 54px;
+            padding: 11px 13px;
+        }
+        .progression-side-panel .progression-menu-subtitle {
+            display: none;
+        }
+        .menu-section-divider {
+            height: 1px;
+            margin: 2px 10px 0;
+            background: linear-gradient(90deg, transparent, rgba(102, 252, 241, 0.45), transparent);
+        }
+        .progression-menu-button {
+            width: 100%;
+            min-height: 68px;
+            padding: 12px 18px;
+            border-color: #f9d342;
+            background:
+                linear-gradient(135deg, rgba(54, 45, 22, 0.96), rgba(19, 28, 38, 0.98));
+            box-shadow:
+                inset 0 0 18px rgba(249, 211, 66, 0.08),
+                0 0 18px rgba(249, 211, 66, 0.12),
+                0 5px 18px rgba(0, 0, 0, 0.55);
+            color: #fff1b8;
+            text-align: left;
+            transform: none;
+        }
+        .progression-menu-button::before {
+            width: 5px;
+            background: #f9d342;
+            opacity: 0.95;
+        }
+        .progression-menu-button:hover:not(:disabled) {
+            border-color: #ffe98a;
+            color: #fff8d6;
+            box-shadow:
+                inset 0 0 22px rgba(249, 211, 66, 0.16),
+                0 0 28px rgba(249, 211, 66, 0.24),
+                0 8px 25px rgba(0, 0, 0, 0.7);
+            transform: translateY(-2px);
+        }
+        .progression-menu-content {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .progression-menu-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            letter-spacing: 1.4px;
+        }
+        .progression-menu-subtitle {
+            color: #bdeeed;
+            font-size: 0.68rem;
+            font-weight: 500;
+            letter-spacing: 0.45px;
+            opacity: 0.9;
+        }
+        .progression-menu-icon {
+            color: #f9d342;
+            font-size: 1.35rem;
+            text-shadow: 0 0 12px rgba(249, 211, 66, 0.7);
+        }
+
+        .btn-ui {
+            position: relative;
+            background: rgba(19, 28, 38, 0.95);
+            border: 1px solid #45a29e;
+            color: #c5c6c7;
+            padding: 15px 22px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: inset 0 0 0 rgba(102, 252, 241, 0), 0 5px 15px rgba(0,0,0,0.5);
+            letter-spacing: 1.5px;
+            overflow: hidden;
+        }
+        .btn-ui::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0; width: 4px;
+            background: #45a29e;
+            opacity: 0.4;
+            transition: opacity 0.2s, width 0.2s;
+        }
+        .btn-ui:hover:not(:disabled) {
+            background: rgba(31, 40, 51, 1);
+            color: #66fcf1;
+            border-color: #66fcf1;
+            box-shadow: inset 0 0 15px rgba(102, 252, 241, 0.15), 0 8px 25px rgba(0,0,0,0.7);
+            transform: translateX(4px);
+        }
+        .btn-ui:hover:not(:disabled)::before {
+            opacity: 1;
+            width: 6px;
+            background: #66fcf1;
+        }
+        .btn-ui:active:not(:disabled) {
+            transform: scale(0.98) translateX(2px);
+        }
+        .btn-ui:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #2b313b;
+        }
+
+        /* WORLD SELECT PANEL */
+        .world-select-panel {
+            background: rgba(14, 19, 26, 0.98);
+            border: 1.5px solid rgba(102, 252, 241, 0.5);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95), 0 0 35px rgba(102, 252, 241, 0.2);
+            border-radius: 8px;
+            padding: 30px;
+            width: 660px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .world-select-panel h2 {
+            font-size: 1.8rem;
+            color: #66fcf1;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .world-select-message {
+            color: #2ecc71;
+            font-weight: bold;
+            text-align: center;
+            margin: -8px 0 18px;
+            min-height: 1.2em;
+        }
+        .world-block {
+            background: rgba(11, 12, 16, 0.6);
+            border: 1px solid rgba(69, 162, 158, 0.3);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .world-block-title {
+            color: #f9d342;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+        .options-panel {
+            width: min(920px, 94vw);
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(14, 19, 26, 0.98);
+            border: 1.5px solid rgba(102, 252, 241, 0.6);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95), 0 0 35px rgba(102, 252, 241, 0.25);
+            border-radius: 8px;
+            padding: 28px;
+        }
+        .options-title {
+            color: #66fcf1;
+            font-size: 2rem;
+            letter-spacing: 5px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .options-card {
+            background: rgba(11, 12, 16, 0.72);
+            border: 1px solid rgba(69, 162, 158, 0.45);
+            border-radius: 6px;
+            padding: 18px;
+            min-width: 0;
+        }
+        .options-card h3 {
+            color: #f9d342;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+        .options-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 8px 0;
+            color: #c5c6c7;
+        }
+        .options-row label {
+            flex: 1;
+            line-height: 1.35;
+        }
+        .options-range {
+            flex: 1.2;
+            accent-color: #66fcf1;
+            cursor: pointer;
+        }
+        .options-value {
+            min-width: 48px;
+            color: #66fcf1;
+            font-weight: bold;
+            text-align: right;
+        }
+        .options-check {
+            accent-color: #66fcf1;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .options-controls {
+            display: grid;
+            gap: 9px;
+        }
+        .options-control {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 9px 11px;
+            border-left: 3px solid #45a29e;
+            background: rgba(31, 40, 51, 0.55);
+            color: #c5c6c7;
+            flex-wrap: wrap;
+        }
+        .options-control b {
+            color: #66fcf1;
+            text-align: right;
+        }
+        .options-info {
+            display: grid;
+            gap: 8px;
+            color: #c5c6c7;
+        }
+        .options-info span {
+            color: #66fcf1;
+            float: right;
+        }
+        .options-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .options-actions .btn-ui {
+            flex: 1;
+            justify-content: center;
+        }
+        .options-footer {
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(69, 162, 158, 0.35);
+        }
+        .fps-counter {
+            position: fixed;
+            top: 12px;
+            right: 14px;
+            z-index: 2500;
+            display: none;
+            color: #66fcf1;
+            background: rgba(6, 7, 9, 0.82);
+            border: 1px solid rgba(102, 252, 241, 0.6);
+            border-radius: 4px;
+            padding: 5px 9px;
+            font: bold 0.78rem monospace;
+        }
+        .fps-counter.visible {
+            display: block;
+        }
+        .missions-panel {
+            width: min(1000px, 96vw);
+            max-height: 92vh;
+            overflow-y: auto;
+            background: rgba(14, 19, 26, 0.98);
+            border: 1.5px solid rgba(102, 252, 241, 0.6);
+            border-radius: 8px;
+            padding: 28px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95), 0 0 35px rgba(102, 252, 241, 0.25);
+        }
+        .missions-title {
+            color: #66fcf1;
+            text-align: center;
+            font-size: 2rem;
+            letter-spacing: 3px;
+            margin-bottom: 22px;
+        }
+        .missions-summary {
+            background: rgba(11, 12, 16, 0.75);
+            border: 1px solid rgba(69, 162, 158, 0.55);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .missions-progress-track {
+            height: 16px;
+            background: #080a0d;
+            border: 1px solid #45a29e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .missions-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #45a29e, #66fcf1);
+            transition: width 0.25s ease;
+        }
+        .missions-summary-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 10px;
+            color: #c5c6c7;
+        }
+        .missions-summary-line strong {
+            color: #66fcf1;
+        }
+        .missions-dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .missions-dashboard-card {
+            padding: 11px;
+            text-align: center;
+            background: rgba(31,40,51,.72);
+            border: 1px solid rgba(102,252,241,.25);
+            border-radius: 8px;
+        }
+        .missions-dashboard-card strong {
+            display: block;
+            color: #66fcf1;
+            font-size: 1.25rem;
+        }
+        .missions-dashboard-card span {
+            color: #aeb4bd;
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+        }
+        .missions-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .missions-filter {
+            border: 1px solid rgba(69,162,158,.55);
+            border-radius: 999px;
+            padding: 8px 12px;
+            background: rgba(11,12,16,.8);
+            color: #c5c6c7;
+            cursor: pointer;
+        }
+        .missions-filter.active, .missions-filter:hover {
+            color: #0b0c10;
+            background: #66fcf1;
+            border-color: #66fcf1;
+        }
+        .missions-filter-count {
+            margin-left: auto;
+            color: #8c92ac;
+            font-size: .8rem;
+        }
+        .mission-card {
+            position: relative;
+            transition: transform .2s ease, border-color .2s ease, background .2s ease;
+        }
+        .mission-card:hover {
+            transform: translateX(3px);
+            background: rgba(31,40,51,.82);
+        }
+        .mission-card.completed::before {
+            content: '✓';
+            position: absolute;
+            top: 9px;
+            left: 9px;
+            color: #2ecc71;
+            font-weight: 900;
+        }
+        .mission-card.completed .mission-name,
+        .mission-card.completed .mission-description {
+            padding-left: 18px;
+        }
+        .mission-empty {
+            padding: 22px;
+            text-align: center;
+            color: #2ecc71;
+            border: 1px dashed rgba(46,204,113,.55);
+            border-radius: 8px;
+        }
+        .missions-section {
+            margin-top: 18px;
+        }
+        .missions-section h3 {
+            color: #f9d342;
+            font-size: 1rem;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+        .mission-card {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 5px 14px;
+            padding: 13px 15px;
+            margin-bottom: 8px;
+            background: rgba(31, 40, 51, 0.55);
+            border: 1px solid rgba(69, 162, 158, 0.3);
+            border-radius: 5px;
+        }
+        .mission-card.completed {
+            border-color: rgba(46, 204, 113, 0.65);
+        }
+        .mission-name {
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .mission-description {
+            color: #aeb4bd;
+            font-size: 0.88rem;
+            grid-column: 1;
+        }
+        .mission-reward {
+            grid-column: 1;
+            color: #f9d342;
+            font-size: 0.76rem;
+            margin-top: 2px;
+        }
+        .mission-status {
+            grid-column: 2;
+            grid-row: 1 / span 3;
+            align-self: center;
+            color: #8c92ac;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .mission-card.completed .mission-status {
+            color: #2ecc71;
+        }
+        .mission-progress-track {
+            height: 7px;
+            background: #080a0d;
+            border-radius: 5px;
+            overflow: hidden;
+            grid-column: 1;
+            margin-top: 4px;
+        }
+        .mission-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #45a29e;
+        }
+        .mission-card.completed .mission-progress-fill {
+            background: #2ecc71;
+        }
+        .boss-reward-panel {
+            width: min(620px, 94vw);
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            text-align: center;
+            background: rgba(14, 19, 26, 0.98);
+            border: 2px solid #f9d342;
+            border-radius: 10px;
+            box-shadow: 0 0 28px rgba(249, 211, 66, 0.35), 0 25px 60px rgba(0,0,0,0.95);
+            animation: rewardPanelIn 0.4s ease-out;
+        }
+        @keyframes rewardPanelIn {
+            from { opacity: 0; transform: scale(0.88) translateY(18px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .boss-reward-title {
+            color: #f9d342;
+            font-size: clamp(1.8rem, 6vw, 3rem);
+            text-shadow: 0 0 10px #f9d342, 0 0 26px #f39c12;
+            margin-bottom: 8px;
+        }
+        .boss-reward-boss {
+            color: #ffffff;
+            font-size: 1.25rem;
+            margin-bottom: 22px;
+        }
+        .boss-reward-list, .boss-mission-list {
+            text-align: left;
+            padding: 15px 18px;
+            margin-bottom: 18px;
+            background: rgba(11, 12, 16, 0.72);
+            border: 1px solid rgba(249, 211, 66, 0.45);
+            border-radius: 6px;
+        }
+        .boss-reward-list h3, .boss-mission-list h3 {
+            color: #66fcf1;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        .boss-reward-item {
+            color: #f9d342;
+            padding: 5px 0;
+        }
+        .boss-mission-item {
+            color: #2ecc71;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .boss-mission-item:last-child { border-bottom: 0; }
+        .boss-mission-item small {
+            display: block;
+            color: #c5c6c7;
+            margin-top: 3px;
+        }
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .btn-level {
+            background: rgba(19, 28, 38, 0.9);
+            border: 1px solid #45a29e;
+            color: #c5c6c7;
+            padding: 10px 8px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-level.boss-btn {
+            border-color: #e056fd;
+            color: #e056fd;
+            background: rgba(45, 15, 60, 0.5);
+        }
+        .btn-level:hover:not(:disabled) {
+            background: #66fcf1;
+            color: #0b0c10;
+            font-weight: bold;
+        }
+        .btn-level.boss-btn:hover:not(:disabled) {
+            background: #e056fd;
+            color: #fff;
+        }
+        .btn-level:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #2b313b;
+            color: #555;
+            background: rgba(11, 12, 16, 0.4);
+        }
+
+        /* PAUSE PANEL */
+        #pause-screen {
+            background: rgba(6, 7, 9, 0.75);
+            backdrop-filter: blur(8px);
+        }
+        .pause-panel {
+            background: rgba(14, 19, 26, 0.98);
+            border: 1.5px solid rgba(102, 252, 241, 0.6);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.95), 0 0 35px rgba(102, 252, 241, 0.25);
+            border-radius: 8px;
+            padding: 35px;
+            width: 380px;
+        }
+        .pause-header {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #66fcf1;
+            letter-spacing: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(102, 252, 241, 0.5);
+        }
+        .pause-stats {
+            background: rgba(11, 12, 16, 0.7);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 4px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .pause-stats-row {
+            display: flex;
+            justify-content: space-between;
+            color: #8c92ac;
+        }
+        .pause-stats-row span {
+            color: #f9d342;
+            font-weight: bold;
+        }
+
+        /* OPTIONS PANEL */
+        .options-panel {
+            background: rgba(14, 19, 26, 0.95);
+            border: 1px solid rgba(69, 162, 158, 0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            padding: 32px;
+            border-radius: 8px;
+            width: min(1100px, 96vw);
+            max-height: 92vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        .options-panel h2 {
+            color: #66fcf1;
+            font-size: 2rem;
+            letter-spacing: 5px;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .options-panel p {
+            font-size: 0.85rem;
+            color: #c5c6c7;
+            line-height: 1.7;
+            margin-bottom: 25px;
+            background: rgba(11, 12, 16, 0.5);
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 3px solid #66fcf1;
+        }
+
+        .btn-shop {
+            background: rgba(19, 28, 38, 0.95);
+            border: 1px solid #f9d342;
+            color: #f9d342;
+            padding: 15px 22px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.25s ease;
+        }
+
+        .btn-shop:hover {
+            background: rgba(249, 211, 66, 0.15);
+            transform: translateX(4px);
+        }
+
+        .shop-panel {
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: rgba(11, 12, 16, 0.98);
+            border: 2px solid #66fcf1;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 0 25px rgba(102,252,241,0.35);
+        }
+
+        .shop-title {
+            text-align: center;
+            font-size: 3rem;
+            color: #f9d342;
+            margin-bottom: 25px;
+            text-shadow: 0 0 15px #f9d342;
+        }
+
+        .shop-category {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #45a29e;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .shop-category h2 {
+            color: #66fcf1;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(102,252,241,0.3);
+            padding-bottom: 8px;
+        }
+
+        .shop-category .btn-ui {
+            width: 100%;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+
+        .shop-footer {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(102,252,241,0.25);
+        }
+
+        .shop-footer .btn-ui {
+            width: 100%;
+            justify-content: center;
+            font-size: 1.1rem;
+            padding: 15px;
+        }
+
+        .shop-gold {
+            text-align: center;
+            font-size: 1.3rem;
+            color: #f9d342;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .shop-header, .skins-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .shop-header .shop-title, .skins-header .shop-title {
+            margin: 0;
+            flex: 1;
+        }
+        .shop-wallet {
+            flex: 0 0 auto;
+            padding: 10px 14px;
+            border: 1px solid rgba(249,211,66,.65);
+            border-radius: 999px;
+            color: #fff1b8;
+            background: rgba(249,211,66,.1);
+            font-weight: 800;
+        }
+        .shop-category-intro {
+            color: #aeb4bd;
+            font-size: .86rem;
+            margin: -7px 0 14px;
+        }
+        .shop-item-grid, .skin-card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .shop-item-card, .skin-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px;
+            min-width: 0;
+            border: 1px solid rgba(69,162,158,.35);
+            border-radius: 8px;
+            background: linear-gradient(145deg, rgba(31,40,51,.8), rgba(11,12,16,.72));
+        }
+        .shop-item-card:hover, .skin-card:hover {
+            border-color: #66fcf1;
+            box-shadow: 0 0 16px rgba(102,252,241,.12);
+        }
+        .shop-item-icon, .skin-preview {
+            display: grid;
+            place-items: center;
+            flex: 0 0 48px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 1.45rem;
+            background: rgba(102,252,241,.1);
+            border: 1px solid rgba(102,252,241,.4);
+        }
+        .skin-preview {
+            background: var(--skin-color, #66fcf1);
+            border: 3px solid rgba(255,255,255,.8);
+            box-shadow: 0 0 15px var(--skin-color, #66fcf1);
+        }
+        .shop-item-content, .skin-card-content { min-width: 0; flex: 1; }
+        .shop-item-content strong, .skin-card-content strong { display: block; color: #fff; margin-bottom: 4px; }
+        .shop-item-content small, .skin-card-content small { display: block; color: #aeb4bd; line-height: 1.35; }
+        .shop-item-card .btn-ui, .skin-card .btn-ui {
+            width: auto;
+            flex: 0 0 auto;
+            margin: 0;
+            padding: 9px 11px;
+            font-size: .78rem;
+            justify-content: center;
+        }
+        .skin-card.equipped { border-color: #2ecc71; box-shadow: 0 0 14px rgba(46,204,113,.14); }
+        .skin-card.equipped .skin-preview { border-color: #2ecc71; }
+        .skins-summary {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            color: #c5c6c7;
+            background: rgba(31,40,51,.55);
+            border: 1px solid rgba(69,162,158,.35);
+            border-radius: 8px;
+        }
+        .skins-summary strong { color: #66fcf1; }
+        .phase3-hero {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .phase3-stat {
+            padding: 12px;
+            text-align: center;
+            background: rgba(31,40,51,.7);
+            border: 1px solid rgba(102,252,241,.25);
+            border-radius: 9px;
+        }
+        .phase3-stat strong { display: block; color: #66fcf1; font-size: 1.25rem; }
+        .phase3-stat span { color: #aeb4bd; font-size: .72rem; text-transform: uppercase; letter-spacing: .8px; }
+        .phase3-card .btn-ui { width: 100%; margin-top: 8px; }
+        #challenge-status { color: #f9d342; min-height: 1.3em; margin-top: 10px; }
+
+        .btn-skins {
+            background: linear-gradient(135deg, #7b2cbf, #9d4edd);
+            border: 1px solid #c77dff;
+            color: white;
+            padding: 15px 22px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 15px rgba(199,125,255,0.4);
+        }
+        
+        .btn-skins:hover {
+            transform: translateX(4px);
+            border-color: #e0aaff;
+            box-shadow: 0 0 25px rgba(224,170,255,0.8);
+        }
+
+        #player-stats-box {
+            position: fixed;
+            left: clamp(12px, 2vw, 32px);
+            top: 50%;
+            transform: translateY(-50%);
+            box-sizing: border-box;
+            width: clamp(180px, 15vw, 240px);
+            max-height: min(70vh, 360px);
+            overflow-y: auto;
+            padding: clamp(11px, 1.2vw, 16px);
+            background: rgba(11,12,16,0.95);
+            border: 1px solid #45a29e;
+            border-radius: 8px;
+            color: white;
+            font-size: clamp(12px, 0.9vw, 14px);
+            line-height: 1.35;
+            box-shadow: 0 0 12px rgba(102,252,241,0.2);
+            z-index: 3050;
+            display: block;
+        }
+        
+        #player-stats-box div {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 24px;
+            margin-bottom: 6px;
+        }
+
+        #player-stats-box div:last-child {
+            margin-bottom: 0;
+        }
+
+        #gameover-screen {
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .gameover-panel {
+            width: 500px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(20,20,20,0.95);
+            border: 3px solid #66fcf1;
+            border-radius: 20px;
+            padding: 30px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        
+        .gameover-title {
+            text-align: center;
+            font-size: 52px;
+            margin-bottom: 10px;
+            color: #ff4d4d;
+            text-shadow:0 0 10px #ff4d4d, 0 0 20px #ff0000;
+        }
+        
+        .gameover-subtitle {
+            text-align: center;
+            color: #bbb;
+            margin-bottom: 25px;
+            font-size: 18px;
+        }
+        
+        .gameover-stats {
+            background: rgba(0,0,0,0.35);
+            border: 2px solid #66fcf1;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;}
+
+        .gameover-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .gameover-buttons button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .victory-title {
+            text-align: center;
+            font-size: 52px;
+            color: #f9d342;
+            text-shadow:0 0 10px #f9d342, 0 0 20px #f39c12, 0 0 40px #f39c12;
+            margin-bottom: 10px;
+        }
+        .victory-subtitle {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ffffff;
+            font-size: 18px;
+        }
+        .credits-panel {
+            width: min(680px, 92vw);
+            max-height: 88vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            padding: clamp(28px, 6vw, 58px);
+            text-align: center;
+            background: linear-gradient(145deg, rgba(14,19,26,.98), rgba(25,18,38,.98));
+            border: 2px solid #f9d342;
+            border-radius: 18px;
+            box-shadow: 0 0 28px rgba(249,211,66,.3), 0 20px 60px rgba(0,0,0,.8);
+        }
+        .credits-kicker {
+            color: #66fcf1;
+            font-size: .82rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+        .credits-title {
+            color: #f9d342;
+            font-size: clamp(2rem, 7vw, 3.7rem);
+            letter-spacing: 3px;
+            margin-bottom: 28px;
+            text-shadow: 0 0 18px rgba(249,211,66,.55);
+        }
+        .credits-message {
+            color: #fff;
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            line-height: 1.8;
+            margin: 0 auto 28px;
+            max-width: 540px;
+        }
+        .credits-legal {
+            color: #aeb4bd;
+            font-size: .82rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .credits-logo {
+            display: block;
+            width: min(320px, 72vw);
+            height: auto;
+            margin: 0 auto 30px;
+            border: 1px solid rgba(102,252,241,.35);
+            border-radius: 12px;
+            object-fit: contain;
+            box-shadow: 0 0 24px rgba(102,252,241,.2);
+        }
+
+        @media (max-width: 860px) {
+            body {
+                overflow: auto;
+                padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+                    max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+            }
+            h1 { font-size: 1.4rem; }
+            #ui, #boss-ui-container { width: min(100%, 820px); flex-wrap: wrap; gap: 8px; }
+            .canvas-wrapper { width: 100%; overflow: auto; }
+            canvas { max-width: 100%; height: auto; }
+            .title-hero { font-size: clamp(2.5rem, 13vw, 5.2rem); letter-spacing: 5px; }
+            .world-select-panel, .shop-panel { width: min(100%, 660px); }
+            .options-panel { padding: 20px 16px; max-height: 88vh; }
+            .options-grid { grid-template-columns: 1fr; }
+            .options-title { font-size: 1.55rem; letter-spacing: 3px; }
+            .options-actions { flex-direction: column; }
+            .level-grid { grid-template-columns: repeat(2, 1fr); }
+            #player-stats-box {
+                left: max(8px, env(safe-area-inset-left));
+                top: auto;
+                bottom: max(8px, env(safe-area-inset-bottom));
+                transform: none;
+                width: min(180px, 42vw);
+                max-height: 34vh;
+                padding: 10px;
+                font-size: 11px;
+            }
+            .title-menu-layout { width: 280px; }
+            .missions-panel { padding: 20px 16px; max-height: 88vh; }
+            .missions-title { font-size: 1.45rem; letter-spacing: 2px; }
+            .boss-reward-panel { padding: 20px 16px; }
+        }
+
+        @media (max-width: 520px) {
+            #player-stats-box {
+                width: min(154px, 39vw);
+                max-height: 30vh;
+                padding: 8px;
+                font-size: 10px;
+            }
+            #player-stats-box div {
+                min-height: 20px;
+                gap: 4px;
+                margin-bottom: 3px;
+            }
+            .title-menu-layout { width: 280px; }
+            .progression-side-panel {
+                position: static;
+                width: 280px;
+                margin-top: 14px;
+                padding: 14px;
+            }
+
+            @media (max-width: 360px) {
+                #player-stats-box {
+                    left: 6px;
+                    bottom: max(6px, env(safe-area-inset-bottom));
+                    width: 132px;
+                    font-size: 9px;
+                }
+            }
+            .progression-side-panel p { margin-bottom: 10px; }
+            .options-panel {
+                width: 98vw;
+                max-height: 94vh;
+                padding: 18px 14px;
+            }
+            .options-card {
+                padding: 14px;
+            }
+            .options-row {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+            .options-range {
+                flex-basis: 100%;
+                order: 3;
+            }
+            .options-actions .btn-ui {
+                font-size: 0.8rem;
+                letter-spacing: 0.8px;
+                padding: 12px 14px;
+            }
+            .missions-panel { width: 98vw; max-height: 94vh; padding: 18px 14px; }
+            .mission-card { grid-template-columns: 1fr; }
+            .mission-status { grid-column: 1; grid-row: auto; text-align: left; }
+        }
+        @media (max-width: 380px) {
+            .title-legal { padding: 8px 10px; font-size: .62rem; }
+            .title-edition { flex-direction: column; gap: 2px; font-size: .64rem; }
+        }
+        @media (max-width: 860px) {
+            #title-screen {
+                height: 100vh;
+                height: 100dvh;
+                justify-content: flex-start;
+                overflow-x: hidden;
+                overflow-y: auto;
+                padding: max(18px, env(safe-area-inset-top)) 12px max(18px, env(safe-area-inset-bottom));
+                overscroll-behavior: contain;
+            }
+            #title-screen .title-hero-wrapper {
+                flex: 0 0 auto;
+                margin-bottom: clamp(20px, 4vh, 34px);
+            }
+            #title-screen .title-hero {
+                font-size: clamp(2rem, 10vw, 4.2rem);
+                letter-spacing: clamp(3px, 1.4vw, 8px);
+            }
+            #title-screen .title-subtitle {
+                font-size: clamp(.65rem, 2.8vw, .9rem);
+                letter-spacing: clamp(2px, 1vw, 5px);
+            }
+            #title-screen .title-menu-layout {
+                flex: 0 0 auto;
+                width: min(280px, 100%);
+                margin: 0 auto;
+            }
+            #title-screen .menu-container {
+                width: 100%;
+            }
+            #title-screen .progression-side-panel {
+                position: static;
+                width: 100%;
+                margin: 14px 0 0;
+            }
+            #title-screen #player-stats-box {
+                position: static;
+                flex: 0 0 auto;
+                width: min(280px, 100%);
+                max-height: none;
+                margin: 18px auto 0;
+                padding: 10px 14px;
+                transform: none;
+            }
+            #title-screen .title-legal {
+                position: static;
+                flex: 0 0 auto;
+                width: min(420px, 100%);
+                margin: 18px auto 0;
+                text-align: center;
+            }
+            #title-screen .title-edition {
+                justify-content: center;
+            }
+        }
+        @media (max-width: 860px) and (orientation: landscape) {
+            #title-screen {
+                padding: max(8px, env(safe-area-inset-top)) 14px max(8px, env(safe-area-inset-bottom));
+            }
+            #title-screen .title-hero-wrapper {
+                margin-bottom: 12px;
+            }
+            #title-screen .title-hero {
+                font-size: clamp(1.55rem, 5vw, 2.4rem);
+                letter-spacing: clamp(2px, .8vw, 5px);
+            }
+            #title-screen .title-subtitle {
+                margin-top: 4px;
+                font-size: .62rem;
+                letter-spacing: 2px;
+            }
+            #title-screen .title-menu-layout {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(160px, .8fr);
+                align-items: start;
+                gap: 12px;
+                width: min(620px, 100%);
+            }
+            #title-screen .menu-container {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }
+            #title-screen .menu-container > button {
+                min-height: 42px;
+                padding: 8px;
+                font-size: clamp(.58rem, 1.6vw, .78rem);
+                letter-spacing: .8px;
+            }
+            #title-screen .progression-side-panel {
+                margin: 0;
+                padding: 12px;
+            }
+            #title-screen #player-stats-box {
+                width: min(620px, 100%);
+                margin-top: 10px;
+                padding: 8px 12px;
+            }
+            #title-screen .title-legal {
+                width: min(620px, 100%);
+                margin-top: 10px;
+                padding: 8px 10px;
+            }
+            body.game-playing > h1 {
+                display: none;
+            }
+            body.game-playing #ui {
+                margin-bottom: 4px;
+                padding: 5px 8px;
+                font-size: .74rem;
+            }
+            body.game-playing .canvas-wrapper {
+                overflow: hidden;
+            }
+            body.game-playing .touch-controls {
+                inset: auto max(12px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom))
+                    max(12px, env(safe-area-inset-left));
+            }
+            body.game-playing #gameCanvas {
+                width: auto;
+                max-width: calc(100vw - 24px);
+                max-height: calc(100dvh - 130px);
+                margin-inline: auto;
+            }
+        }
+
+        .phase3-panel { width: min(900px, 96vw); max-height: 92vh; overflow-y: auto; scroll-padding: 24px 0 110px; background: rgba(12,18,26,.97); border: 2px solid #66fcf1; border-radius: 18px; padding: 24px; }
+        .phase3-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+        .phase3-card { background: rgba(31,40,51,.8); border: 1px solid rgba(102,252,241,.3); border-radius: 10px; padding: 14px; }
+        .phase3-card h3 { color: #66fcf1; margin-bottom: 9px; }
+        .phase3-card label { display:flex; justify-content:space-between; gap:8px; margin:8px 0; color:#d9e5eb; }
+        .phase3-card select, .phase3-card input[type="text"] { background:#0b0c10; color:#fff; border:1px solid #45a29e; border-radius:5px; padding:6px; }
+        .phase4-card { grid-column: 1 / -1; border-color: rgba(249,211,66,.45); }
+        .phase4-summary { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:8px; margin:10px 0 12px; }
+        .phase4-kpi { padding:10px; text-align:center; border-radius:7px; background:rgba(11,12,16,.65); border:1px solid rgba(255,255,255,.1); }
+        .phase4-kpi strong { display:block; color:#f9d342; font-size:1.15rem; }
+        .phase4-kpi span { color:#aeb4bd; font-size:.72rem; }
+        .phase4-mission-list, .phase4-audit-list { display:grid; gap:7px; }
+        .phase4-mission, .phase4-audit { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:8px 10px; background:rgba(11,12,16,.55); border-radius:6px; color:#d9e5eb; font-size:.82rem; }
+        .phase4-mission small, .phase4-audit small { color:#aeb4bd; }
+        .phase4-status-ok { color:#66fcf1; font-weight:700; }
+        .phase4-status-warn { color:#f9d342; font-weight:700; }
+        .phase4-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+        .phase4-actions .btn-ui { flex:1 1 220px; width:auto; min-width:0; min-height:48px; margin:0; justify-content:center; text-wrap:balance; }
+        .phase3-button-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-top:10px; }
+        .phase3-button-grid .btn-ui { width:100%; min-width:0; min-height:48px; margin:0; justify-content:center; text-wrap:balance; }
+        .phase3-panel .btn-ui { scroll-margin-block: 110px; }
+        .endless-mastery-goals { display:grid; gap:7px; margin-top:12px; }
+        .endless-mastery-goal { display:flex; flex-wrap:wrap; justify-content:space-between; gap:5px 12px; padding:8px 10px; border:1px solid rgba(102,252,241,.18); border-radius:7px; color:#d9e5eb; font-size:.84rem; }
+        .endless-mastery-goal span { color:#b5c1ca; }
+        .endless-mastery-goal.completed { border-color:rgba(99,230,190,.5); color:#63e6be; }
+        .phase3-panel > .options-footer { position:sticky; bottom:-24px; z-index:3; margin:18px -24px -24px; padding:14px 24px 20px; border-top:1px solid rgba(192,157,99,.3); background:linear-gradient(180deg, rgba(13,11,11,.94), rgba(13,11,11,.99)); }
+        .phase3-panel > .options-footer .btn-ui { min-height:48px; }
+        .phase3-pills { display:flex; flex-wrap:wrap; gap:7px; }
+        .phase3-pill { border:1px solid #45a29e; border-radius:16px; padding:5px 9px; font-size:.78rem; color:#bdeeed; }
+        .bestiary-card { grid-column:1 / -1; }
+        .bestiary-overview { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 16px; margin:4px 0 12px; color:#c8c0b2; font-size:.82rem; }
+        .bestiary-overview strong { color:var(--df-gold, #d2b16f); }
+        .bestiary-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); align-items:stretch; gap:10px; min-width:0; }
+        .bestiary-entry { display:grid; grid-template-columns:38px minmax(0,1fr); grid-template-areas:"icon details" ". count"; align-content:start; align-items:start; gap:8px 10px; min-width:0; padding:11px; border:1px solid rgba(192,157,99,.3); border-radius:8px; background:rgba(8,7,7,.55); box-sizing:border-box; }
+        .bestiary-entry.is-unknown { opacity:.72; }
+        .bestiary-entry-icon { grid-area:icon; display:grid; place-items:center; width:36px; height:36px; border:1px solid rgba(192,157,99,.45); border-radius:8px; background:rgba(91,67,37,.22); font-size:1.15rem; }
+        .bestiary-entry-details { grid-area:details; display:grid; align-content:center; gap:4px; min-width:0; min-height:36px; }
+        .bestiary-entry-details strong { color:#ead8b2; font-size:.88rem; line-height:1.25; overflow-wrap:anywhere; }
+        .bestiary-entry-details small { color:#aeb4bd; font-size:.72rem; line-height:1.4; overflow-wrap:anywhere; }
+        .bestiary-entry-count { grid-area:count; justify-self:start; max-width:100%; padding:3px 7px; border:1px solid rgba(192,157,99,.28); border-radius:999px; color:#d5c7aa; font-size:.7rem; line-height:1.3; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+        .phase3-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+        .phase3-table td { padding:5px; border-bottom:1px solid rgba(255,255,255,.1); }
+        .touch-controls { display:none; position:fixed; inset:auto 12px 18px 12px; z-index:4500; justify-content:space-between; align-items:flex-end; pointer-events:none; }
+        .touch-controls button { pointer-events:auto; width:54px; height:54px; border-radius:50%; border:1px solid #8e6e43; background:rgba(12,10,9,.82); color:#e4c489; font-weight:bold; touch-action:none; box-shadow:0 3px 14px rgba(0,0,0,.45); }
+        .touch-joystick { position:relative; width:132px; height:132px; border:1px solid rgba(192,157,99,.55); border-radius:50%; background:radial-gradient(circle, rgba(89,68,43,.35), rgba(8,7,7,.78)); box-shadow:inset 0 0 22px rgba(0,0,0,.65), 0 3px 14px rgba(0,0,0,.4); touch-action:none; pointer-events:auto; }
+        .touch-joystick::before { content:""; position:absolute; inset:24%; border:1px solid rgba(192,157,99,.2); border-radius:50%; }
+        .touch-stick-knob { position:absolute; top:50%; left:50%; width:50px; height:50px; border:1px solid #c09d63; border-radius:50%; background:radial-gradient(circle at 35% 30%, #594a34, #211a13 72%); box-shadow:0 2px 9px rgba(0,0,0,.55); transform:translate(calc(-50% + var(--stick-x, 0px)), calc(-50% + var(--stick-y, 0px))); }
+        .touch-action-group { display:grid; grid-template-columns:repeat(3,54px); gap:10px; align-items:end; }
+        .touch-action-group button { display:grid; place-items:center; font-size:1.15rem; }
+        .touch-action-group button span { font-size:.52rem; line-height:1; letter-spacing:.04em; }
+        .touch-controls button:active { background:rgba(105,40,30,.88); border-color:#d1a96c; }
+        body.game-playing .touch-controls { display:none; }
+        body.game-playing.mobile-touch-enabled .touch-controls { display:flex; }
+        body.mobile-touch-enabled #controls-info { display:none; }
+        @media(max-width:700px){
+            .phase3-grid, .shop-item-grid, .skin-card-grid { grid-template-columns:1fr; }
+            .bestiary-grid { grid-template-columns:1fr; }
+            .phase3-panel { padding:16px; }
+            .phase3-panel > .options-footer { bottom:-16px; margin:16px -16px -16px; padding:12px 16px 14px; }
+            .phase3-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .shop-header, .skins-header { align-items: stretch; flex-direction: column; }
+            .shop-wallet { text-align: center; }
+            .missions-dashboard { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .missions-filter-count { width: 100%; margin-left: 0; }
+        }
+
+        :root {
+            color-scheme: dark;
+            --df-black: #080707;
+            --df-ink: #100d0d;
+            --df-stone: #211c1a;
+            --df-stone-raised: #2d2521;
+            --df-border: #665447;
+            --df-red: #76242b;
+            --df-red-bright: #a63b3b;
+            --df-gold: #b89a5a;
+            --df-gold-light: #ead8aa;
+            --df-bone: #e8dfd0;
+            --df-muted: #b7aa99;
+            --df-success: #a8bd91;
+            --df-shadow: rgba(0, 0, 0, .72);
+        }
+
+        .overlay-screen {
+            color: var(--df-bone);
+            background:
+                radial-gradient(ellipse at 50% 42%, rgba(86, 31, 31, .19), transparent 58%),
+                radial-gradient(ellipse at center, rgba(33, 28, 26, .97), rgba(8, 7, 7, .99) 76%);
+        }
+
+        .overlay-screen > :is(
+            .title-hero-wrapper, .world-select-panel, .options-panel, .missions-panel,
+            .boss-reward-panel, .shop-panel, .pause-panel, .gameover-panel, .credits-panel,
+            .phase3-panel
+        ) {
+            animation: df-panel-enter .24s ease-out both;
+        }
+
+        @keyframes df-panel-enter {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .title-hero {
+            color: var(--df-gold-light);
+            text-shadow: 0 0 26px rgba(166, 59, 59, .34), 0 2px 3px var(--df-black);
+            font-family: Georgia, "Times New Roman", serif;
+        }
+
+        .title-subtitle,
+        .title-edition,
+        .progression-side-kicker {
+            color: var(--df-gold);
+        }
+
+        .title-legal,
+        .progression-side-panel,
+        .overlay-screen :is(
+            .world-select-panel, .options-panel, .missions-panel, .boss-reward-panel,
+            .shop-panel, .pause-panel, .gameover-panel, .credits-panel, .phase3-panel
+        ) {
+            background: linear-gradient(155deg, rgba(35, 29, 26, .98), rgba(13, 11, 11, .99));
+            border-color: rgba(184, 154, 90, .58);
+            box-shadow: 0 22px 56px var(--df-shadow), inset 0 1px rgba(234, 216, 170, .06);
+            color: var(--df-bone);
+        }
+
+        .overlay-screen :is(
+            .world-select-panel, .options-panel, .missions-panel, .boss-reward-panel,
+            .shop-panel, .pause-panel, .gameover-panel, .credits-panel, .phase3-panel
+        ) {
+            border-radius: 10px;
+        }
+
+        .overlay-screen :is(h1, h2, .pause-header, .options-title, .missions-title, .shop-title) {
+            color: var(--df-gold-light);
+            font-family: Georgia, "Times New Roman", serif;
+            text-shadow: 0 1px 2px var(--df-black);
+        }
+
+        .overlay-screen :is(p, label, .options-row, .options-control, .stat-row, .mission-description) {
+            color: var(--df-bone);
+        }
+
+        .overlay-screen :is(
+            .options-card, .phase3-card, .world-block, .shop-category, .missions-summary,
+            .missions-dashboard-card, .mission-card, .shop-item-card, .skin-card,
+            .pause-stats, .gameover-stats, .phase4-kpi, .phase4-mission, .phase4-audit
+        ) {
+            background-color: rgba(8, 7, 7, .55);
+            border-color: rgba(102, 84, 71, .7);
+        }
+
+        .overlay-screen :is(
+            .options-card h3, .world-block-title, .missions-section h3, .shop-category h2,
+            .boss-reward-title, .boss-reward-list h3, .boss-mission-list h3,
+            .phase3-card h3, .progression-side-panel h2
+        ) {
+            color: var(--df-gold);
+        }
+
+        .overlay-screen :is(
+            .title-legal-note, .shop-category-intro, .shop-item-content small,
+            .skin-card-content small, .phase4-kpi span, .phase4-mission small,
+            .phase4-audit small, .mission-description, .options-value
+        ) {
+            color: var(--df-muted);
+        }
+
+        .overlay-screen .progression-side-panel {
+            background: linear-gradient(155deg, rgba(61, 31, 30, .96), rgba(17, 13, 12, .98));
+        }
+
+        .overlay-screen #player-stats-box {
+            color: var(--df-bone);
+            background: linear-gradient(155deg, rgba(35, 29, 26, .98), rgba(13, 11, 11, .99));
+            border-color: rgba(184, 154, 90, .58);
+            box-shadow: 0 12px 30px var(--df-shadow), inset 0 1px rgba(234, 216, 170, .06);
+        }
+
+        .overlay-screen :is(.btn-ui, .btn-shop, .btn-skins, .btn-level, .missions-filter) {
+            border-radius: 5px;
+            transition: color .16s ease, background-color .16s ease, border-color .16s ease,
+                box-shadow .16s ease, transform .16s ease;
+        }
+
+        .overlay-screen .btn-ui {
+            color: var(--df-bone);
+            background: linear-gradient(135deg, #342522, #191514);
+            border-color: #785745;
+            box-shadow: inset 0 1px rgba(234, 216, 170, .06), 0 5px 14px rgba(0, 0, 0, .38);
+        }
+
+        .overlay-screen .btn-ui::before {
+            background: var(--df-red-bright);
+        }
+
+        .overlay-screen .btn-ui:hover:not(:disabled) {
+            color: #fff4dc;
+            background: linear-gradient(135deg, #512b2b, #261918);
+            border-color: var(--df-gold);
+            box-shadow: 0 0 16px rgba(166, 59, 59, .2), 0 7px 18px rgba(0, 0, 0, .5);
+            transform: translateY(-1px);
+        }
+
+        .overlay-screen .btn-ui:hover:not(:disabled)::before {
+            background: var(--df-gold);
+        }
+
+        .overlay-screen .btn-ui:focus-visible,
+        .overlay-screen .btn-shop:focus-visible,
+        .overlay-screen .btn-skins:focus-visible,
+        .overlay-screen .btn-level:focus-visible,
+        .overlay-screen .missions-filter:focus-visible {
+            outline: 2px solid var(--df-gold-light);
+            outline-offset: 3px;
+        }
+
+        .overlay-screen .btn-shop,
+        .overlay-screen .btn-skins {
+            color: var(--df-gold-light);
+            background: linear-gradient(135deg, #302820, #171311);
+            border-color: var(--df-gold);
+            box-shadow: inset 0 1px rgba(234, 216, 170, .06), 0 5px 14px rgba(0, 0, 0, .38);
+        }
+
+        .overlay-screen .btn-shop:hover:not(:disabled),
+        .overlay-screen .btn-skins:hover:not(:disabled) {
+            color: #fff4dc;
+            background: #472b28;
+            box-shadow: 0 0 14px rgba(184, 154, 90, .16);
+            transform: translateY(-1px);
+        }
+
+        .overlay-screen .btn-level {
+            color: var(--df-bone);
+            background: #211a18;
+            border-color: #665447;
+        }
+
+        .overlay-screen .btn-level.boss-btn {
+            color: #e9a1a0;
+            background: rgba(83, 27, 31, .38);
+            border-color: #8c4545;
+        }
+
+        .overlay-screen .btn-level:hover:not(:disabled),
+        .overlay-screen .missions-filter.active,
+        .overlay-screen .missions-filter:hover {
+            color: #fff4dc;
+            background: #642b30;
+            border-color: var(--df-gold);
+        }
+
+        .overlay-screen :is(.btn-ui, .btn-shop, .btn-skins, .btn-level):disabled {
+            opacity: .42;
+        }
+
+        .overlay-screen :is(input, select) {
+            accent-color: var(--df-red-bright);
+        }
+
+        .overlay-screen :is(.phase3-card select, .phase3-card input[type="text"]) {
+            color: var(--df-bone);
+            background: var(--df-black);
+            border-color: var(--df-border);
+        }
+
+        .overlay-screen :is(
+            .missions-progress-track, .mission-progress-track, .phase4-kpi,
+            .phase4-mission, .phase4-audit, .options-control
+        ) {
+            border-color: rgba(102, 84, 71, .72);
+        }
+
+        .overlay-screen :is(.missions-progress-fill, .mission-progress-fill) {
+            background: linear-gradient(90deg, #76242b, #b89a5a);
+        }
+
+        .overlay-screen :is(.phase4-kpi strong, .phase4-status-warn, .mission-reward) {
+            color: var(--df-gold);
+        }
+
+        .overlay-screen :is(.phase4-status-ok, .mission-card.completed .mission-status) {
+            color: var(--df-success);
+        }
+
+        .overlay-screen :is(.phase3-pill, .shop-wallet, .missions-filter) {
+            color: var(--df-gold-light);
+            border-color: rgba(184, 154, 90, .58);
+            background-color: rgba(8, 7, 7, .55);
+        }
+
+        .overlay-screen .skin-card.equipped,
+        .overlay-screen .skin-card.equipped .skin-preview {
+            border-color: var(--df-success);
+            box-shadow: 0 0 12px rgba(168, 189, 145, .12);
+        }
+
+        #notification-banner {
+            color: var(--df-gold-light);
+            background: rgba(35, 20, 19, .96);
+            border-color: var(--df-gold);
+            box-shadow: 0 0 20px rgba(118, 36, 43, .28);
+            letter-spacing: .06em;
+        }
+
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 6000;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            padding: 32px 24px 150px;
+            color: var(--df-bone);
+            text-align: center;
+            background:
+                radial-gradient(ellipse 48% 66% at 50% 62%, transparent 55%, rgba(110, 82, 57, .12) 56%, rgba(5, 5, 5, .76) 61%, transparent 62%),
+                linear-gradient(180deg, rgba(8, 7, 7, .35), rgba(8, 7, 7, .8)),
+                linear-gradient(90deg, rgba(0, 0, 0, .62), transparent 16% 84%, rgba(0, 0, 0, .62)),
+                repeating-linear-gradient(0deg, transparent 0 74px, rgba(184, 154, 90, .035) 75px, transparent 77px),
+                repeating-linear-gradient(90deg, transparent 0 112px, rgba(184, 154, 90, .025) 113px, transparent 115px),
+                radial-gradient(ellipse at 50% 45%, rgba(86, 31, 31, .48), transparent 58%),
+                linear-gradient(145deg, #211c1a, #080707 72%);
+            opacity: 1;
+            transition: opacity .72s ease, transform .72s ease, visibility .72s ease;
+        }
+
+        .loading-screen::before,
+        .loading-screen::after {
+            position: absolute;
+            inset: -12%;
+            content: "";
+            pointer-events: none;
+        }
+
+        .loading-screen::before {
+            background:
+                radial-gradient(ellipse at 12% 54%, rgba(166, 59, 59, .19), transparent 30%),
+                radial-gradient(ellipse at 88% 44%, rgba(184, 154, 90, .13), transparent 27%),
+                radial-gradient(ellipse at 50% 100%, rgba(183, 170, 153, .11), transparent 45%);
+            animation: loading-mist 18s ease-in-out infinite alternate;
+        }
+
+        .loading-screen::after {
+            background:
+                radial-gradient(ellipse at center, transparent 28%, rgba(0, 0, 0, .56) 100%),
+                radial-gradient(ellipse at 10% 47%, rgba(166, 59, 59, .1), transparent 17%),
+                radial-gradient(ellipse at 90% 47%, rgba(234, 216, 170, .08), transparent 15%);
+            animation: loading-torch 7s ease-in-out infinite alternate;
+        }
+
+        .loading-screen.is-leaving {
+            opacity: 0;
+            transform: scale(1.015);
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            position: relative;
+            z-index: 1;
+            width: min(680px, 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .loading-title {
+            color: var(--df-gold-light);
+            font: 700 clamp(3rem, 10vw, 6.5rem)/.95 Georgia, "Times New Roman", serif;
+            letter-spacing: .12em;
+            text-indent: .12em;
+            text-shadow: 0 3px 8px #000, 0 0 34px rgba(166, 59, 59, .42);
+        }
+
+        .loading-subtitle {
+            margin-top: 12px;
+            color: var(--df-gold);
+            font-size: clamp(.72rem, 2.2vw, 1rem);
+            font-weight: 600;
+            letter-spacing: .32em;
+            text-indent: .32em;
+            text-transform: uppercase;
+        }
+
+        .loading-logo {
+            width: 76px;
+            height: 76px;
+            object-fit: contain;
+            opacity: .88;
+            filter: drop-shadow(0 0 12px rgba(184, 154, 90, .25));
+        }
+
+        .loading-logo-fallback {
+            display: grid;
+            place-items: center;
+            width: 76px;
+            height: 76px;
+            border: 1px solid rgba(184, 154, 90, .6);
+            border-radius: 50%;
+            color: var(--df-gold-light);
+            font: 700 2rem Georgia, "Times New Roman", serif;
+        }
+
+        .loading-logo-fallback[hidden] {
+            display: none;
+        }
+
+        .loading-atmosphere-copy {
+            display: grid;
+            gap: 12px;
+            max-width: 520px;
+            color: var(--df-muted);
+            font: italic 1rem/1.6 Georgia, "Times New Roman", serif;
+            text-shadow: 0 2px 6px #000;
+        }
+
+        .loading-developer-credit {
+            color: var(--df-gold-light);
+            font-size: .82rem;
+            font-style: normal;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+
+        .loading-game-tip {
+            color: var(--df-muted);
+        }
+
+        .loading-progress-area {
+            position: absolute;
+            z-index: 2;
+            right: clamp(20px, 8vw, 112px);
+            bottom: clamp(28px, 7vh, 68px);
+            left: clamp(20px, 8vw, 112px);
+            max-width: 920px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .loading-status {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 10px;
+            color: var(--df-muted);
+            font-size: .75rem;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+
+        .loading-status strong {
+            color: var(--df-gold-light);
+            font-weight: 600;
+        }
+
+        .loading-track {
+            height: 7px;
+            overflow: hidden;
+            border: 1px solid rgba(184, 154, 90, .54);
+            background: rgba(8, 7, 7, .82);
+            box-shadow: 0 0 20px rgba(166, 59, 59, .15), inset 0 1px 3px #000;
+        }
+
+        .loading-progress-fill {
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #76242b, #b89a5a);
+            box-shadow: 0 0 14px rgba(184, 154, 90, .4);
+            transition: width .32s ease-out;
+        }
+
+        @keyframes loading-mist {
+            from { transform: translate3d(-1.5%, 0, 0) scale(1); opacity: .65; }
+            to { transform: translate3d(1.5%, -1%, 0) scale(1.04); opacity: 1; }
+        }
+
+        @keyframes loading-torch {
+            from { opacity: .72; }
+            to { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .overlay-screen > :is(
+                .title-hero-wrapper, .world-select-panel, .options-panel, .missions-panel,
+                .boss-reward-panel, .shop-panel, .pause-panel, .gameover-panel,
+                .credits-panel, .phase3-panel
+            ) {
+                animation: none;
+            }
+
+            .overlay-screen :is(.btn-ui, .btn-shop, .btn-skins, .btn-level, .missions-filter) {
+                transition: none;
+            }
+
+            .loading-screen,
+            .loading-screen::before,
+            .loading-screen::after,
+            .loading-progress-fill {
+                animation: none;
+                transition: none;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .loading-screen {
+                padding: 24px 18px 126px;
+            }
+
+            .loading-content {
+                gap: 16px;
+            }
+
+            .loading-logo,
+            .loading-logo-fallback {
+                width: 60px;
+                height: 60px;
+            }
+
+            .loading-title {
+                font-size: clamp(2.4rem, 10vw, 3.25rem);
+            }
+
+            .loading-atmosphere-copy {
+                font-size: .9rem;
+            }
+
+            .loading-status {
+                font-size: .65rem;
+                letter-spacing: .1em;
+            }
+        }
+
+        #title-screen {
+            isolation: isolate;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at 78% 42%, rgba(137, 67, 37, .22), transparent 38%),
+                linear-gradient(112deg, #08090b 0%, #161719 44%, #211912 76%, #08090b 100%);
+        }
+
+        #title-screen::before,
+        #title-screen::after {
+            position: absolute;
+            inset: 0;
+            content: "";
+            pointer-events: none;
+        }
+
+        #title-screen::before {
+            z-index: 0;
+            background:
+                radial-gradient(ellipse at 76% 40%, rgba(199, 116, 62, .2), transparent 28%),
+                radial-gradient(ellipse at 15% 34%, rgba(133, 126, 112, .055), transparent 25%),
+                radial-gradient(ellipse at 42% 73%, rgba(148, 135, 117, .045), transparent 23%),
+                radial-gradient(ellipse at 92% 78%, rgba(173, 120, 79, .055), transparent 21%),
+                linear-gradient(106deg, transparent 48%, rgba(226, 179, 112, .035) 49%, transparent 54%),
+                linear-gradient(112deg, transparent 62%, rgba(226, 179, 112, .025) 63%, transparent 69%),
+                linear-gradient(90deg, rgba(0, 0, 0, .48), transparent 46% 82%, rgba(0, 0, 0, .36)),
+                linear-gradient(180deg, rgba(0, 0, 0, .2), transparent 48%, rgba(0, 0, 0, .68));
+            animation: df-title-atmosphere 28s ease-in-out infinite alternate;
+        }
+
+        #title-screen::after {
+            z-index: 0;
+            inset: auto 0 0;
+            height: 20%;
+            opacity: .62;
+            background:
+                radial-gradient(ellipse at 52% 0%, rgba(169, 169, 160, .13), transparent 72%),
+                linear-gradient(180deg, transparent, rgba(5, 5, 5, .94) 80%),
+                radial-gradient(ellipse at 70% 100%, rgba(145, 83, 49, .24), transparent 53%);
+        }
+
+        #title-screen > .title-scene {
+            position: absolute;
+            z-index: 0;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .title-moon {
+            position: absolute;
+            top: 24%;
+            left: 75%;
+            width: clamp(280px, 35vw, 490px);
+            aspect-ratio: 1;
+            border: 1px solid rgba(223, 157, 96, .24);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 50% 50%, rgba(255, 211, 157, .3), rgba(169, 91, 52, .19) 36%, rgba(71, 37, 27, .1) 67%, transparent 72%),
+                repeating-conic-gradient(from 6deg at 50% 50%, rgba(255, 226, 188, .018) 0deg 1deg, transparent 1deg 9deg);
+            box-shadow: 0 0 70px rgba(177, 95, 48, .16), 0 0 160px rgba(121, 67, 40, .12);
+            opacity: .68;
+            transform: translateX(-50%);
+        }
+
+        .title-moon::after {
+            position: absolute;
+            inset: 9%;
+            border: 1px solid rgba(255, 216, 175, .08);
+            border-radius: inherit;
+            content: "";
+            box-shadow: inset 0 0 70px rgba(20, 12, 9, .52);
+        }
+
+        .title-castle {
+            position: absolute;
+            left: 76%;
+            bottom: -4%;
+            width: clamp(520px, 62vw, 900px);
+            height: min(82vh, 760px);
+            transform: translateX(-50%);
+            background:
+                linear-gradient(90deg, transparent 12%, rgba(195, 175, 143, .035) 12.2%, transparent 12.8% 27%, rgba(195, 175, 143, .025) 27.2%, transparent 28%),
+                linear-gradient(0deg, transparent 56%, rgba(195, 175, 143, .018) 56.2%, transparent 57%),
+                linear-gradient(90deg, #111214, #272522 18%, #171819 34%, #29251f 50%, #171819 69%, #29251f 84%, #101113);
+            clip-path: polygon(0 100%, 0 43%, 7% 43%, 7% 28%, 14% 28%, 14% 42%,
+                22% 42%, 22% 21%, 29% 21%, 29% 14%, 36% 14%, 36% 21%, 44% 21%,
+                44% 9%, 48% 9%, 50% 0, 52% 9%, 56% 9%, 56% 21%, 64% 21%,
+                64% 14%, 71% 14%, 71% 21%, 78% 21%, 78% 42%, 86% 42%,
+                86% 28%, 93% 28%, 93% 43%, 100% 43%, 100% 100%);
+            filter: drop-shadow(0 0 30px rgba(0, 0, 0, .7));
+        }
+
+        .title-castle::before {
+            position: absolute;
+            inset: 38% 38% 0;
+            content: "";
+            background:
+                radial-gradient(ellipse at 50% 76%, rgba(255, 186, 98, .5), rgba(186, 95, 47, .2) 32%, transparent 68%),
+                linear-gradient(90deg, #08090a, #241c16 50%, #08090a);
+            border: 1px solid rgba(208, 156, 95, .18);
+            border-bottom: 0;
+            border-radius: 48% 48% 0 0 / 24% 24% 0 0;
+            box-shadow: 0 0 42px rgba(193, 113, 58, .12);
+        }
+
+        .title-castle::after {
+            position: absolute;
+            inset: 12% 0 0;
+            content: "";
+            background:
+                radial-gradient(ellipse 5px 16px at 29% 28%, rgba(255, 190, 105, .52), transparent 75%),
+                radial-gradient(ellipse 5px 16px at 36% 28%, rgba(255, 190, 105, .44), transparent 75%),
+                radial-gradient(ellipse 5px 18px at 64% 28%, rgba(255, 190, 105, .44), transparent 75%),
+                radial-gradient(ellipse 5px 18px at 71% 28%, rgba(255, 190, 105, .52), transparent 75%),
+                radial-gradient(ellipse 4px 14px at 17% 47%, rgba(255, 190, 105, .38), transparent 75%),
+                radial-gradient(ellipse 4px 14px at 83% 47%, rgba(255, 190, 105, .38), transparent 75%),
+                linear-gradient(180deg, transparent 0 63%, rgba(0, 0, 0, .28) 63.2% 63.6%, transparent 63.8%);
+            opacity: .74;
+        }
+
+        .title-cliffs {
+            position: absolute;
+            inset: 0;
+        }
+
+        .title-cliff {
+            position: absolute;
+            bottom: 0;
+            width: 33%;
+            height: 90%;
+            background:
+                linear-gradient(90deg, transparent 64%, rgba(196, 179, 150, .035), transparent 70%),
+                linear-gradient(110deg, #0b0c0e, #201f1d 72%, #101113);
+            filter: drop-shadow(0 0 24px rgba(0, 0, 0, .65));
+        }
+
+        .title-cliff-left {
+            left: -4%;
+            clip-path: polygon(0 0, 58% 0, 58% 18%, 72% 18%, 72% 41%, 88% 56%, 100% 100%, 0 100%);
+        }
+
+        .title-cliff-right {
+            right: -4%;
+            width: 29%;
+            height: 84%;
+            background:
+                linear-gradient(90deg, transparent 28%, rgba(196, 179, 150, .03), transparent 34%),
+                linear-gradient(245deg, #0b0c0e, #242321 72%, #101113);
+            clip-path: polygon(35% 0, 100% 0, 100% 100%, 0 100%, 12% 60%, 28% 43%, 35% 20%);
+        }
+
+        .title-cliff::after {
+            position: absolute;
+            inset: 10% 0 0;
+            content: "";
+            background: linear-gradient(150deg, rgba(184, 154, 90, .09), transparent 35%);
+        }
+
+        .title-mist {
+            position: absolute;
+            right: 7%;
+            bottom: 10%;
+            left: 23%;
+            height: 28%;
+            background:
+                radial-gradient(ellipse at 60% 70%, rgba(185, 112, 67, .17), transparent 68%),
+                radial-gradient(ellipse at 35% 45%, rgba(155, 151, 142, .12), transparent 54%);
+            filter: blur(22px);
+            animation: df-title-atmosphere 24s ease-in-out infinite alternate;
+            opacity: .72;
+        }
+
+        #title-screen > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        #title-screen > .title-legal {
+            position: absolute;
+        }
+
+        #title-screen .title-hero-wrapper {
+            position: absolute;
+            top: clamp(30px, 5vh, 54px);
+            left: 68%;
+            width: min(650px, 52vw);
+            margin: 0;
+            transform: translateX(-50%);
+            animation: df-title-enter .8s ease-out both;
+        }
+
+        #title-screen .title-wiyotl-logo {
+            display: block;
+            width: 42px;
+            height: 42px;
+            margin: 0 auto 8px;
+            object-fit: contain;
+            opacity: .9;
+            filter: drop-shadow(0 0 12px rgba(184, 154, 90, .32));
+        }
+
+        #title-screen .title-hero {
+            color: var(--df-gold-light);
+            font-size: clamp(2.8rem, 5vw, 4.5rem);
+            letter-spacing: clamp(.08em, .6vw, .13em);
+            line-height: 1.12;
+            text-shadow: 0 4px 10px #000, 0 0 34px rgba(166, 59, 59, .42);
+        }
+
+        #title-screen .title-subtitle {
+            margin-top: 8px;
+            color: var(--df-gold);
+            font-size: clamp(.72rem, 1.3vw, .9rem);
+            letter-spacing: clamp(.14em, .45vw, .28em);
+        }
+
+        #title-screen .title-studio {
+            margin-top: 12px;
+            color: var(--df-muted);
+            font-size: .64rem;
+            font-weight: 700;
+            letter-spacing: .24em;
+            text-transform: uppercase;
+        }
+
+        #title-screen .title-menu-layout {
+            position: absolute;
+            top: 50%;
+            left: clamp(24px, 4.5vw, 68px);
+            display: grid;
+            grid-template-columns: minmax(260px, 320px) minmax(220px, 264px);
+            grid-template-areas:
+                "menu stats"
+                "progress stats";
+            align-items: start;
+            gap: 16px;
+            width: min(600px, 52vw);
+            min-width: 0;
+            transform: translateY(-42%);
+        }
+
+        #title-screen .title-menu-layout > .menu-container {
+            grid-area: menu;
+        }
+
+        #title-screen .menu-container {
+            width: 100%;
+            gap: 0;
+            padding: 8px 10px;
+            border: 1px solid rgba(184, 154, 90, .32);
+            background: linear-gradient(110deg, rgba(11, 9, 9, .88), rgba(17, 12, 12, .58));
+            box-shadow: 0 18px 42px rgba(0, 0, 0, .42), inset 0 1px rgba(234, 216, 170, .04);
+            backdrop-filter: blur(5px);
+        }
+
+        #title-screen .menu-container > button {
+            min-height: 48px;
+            padding: 10px 14px;
+            border: 1px solid transparent;
+            border-bottom-color: rgba(184, 154, 90, .23);
+            border-radius: 1px;
+            background: transparent;
+            box-shadow: none;
+            color: rgba(232, 223, 208, .78);
+            font: 500 .98rem Georgia, "Times New Roman", serif;
+            letter-spacing: .07em;
+            transition: transform .18s ease, color .18s ease, border-color .18s ease,
+                background-color .18s ease, box-shadow .18s ease;
+        }
+
+        #title-screen .menu-container > button::before {
+            width: 2px;
+            background: var(--df-red-bright);
+            opacity: 0;
+        }
+
+        #title-screen .menu-container > button:hover:not(:disabled) {
+            transform: translateX(3px);
+            border-color: rgba(184, 154, 90, .55);
+            color: var(--df-gold-light);
+            background: linear-gradient(90deg, rgba(65, 27, 25, .6), rgba(18, 13, 12, .12));
+            box-shadow: inset 3px 0 rgba(166, 59, 59, .8);
+        }
+
+        #title-screen .menu-container > button:hover:not(:disabled)::before {
+            opacity: 1;
+        }
+
+        #title-screen .menu-container > button:focus-visible,
+        #title-screen .progression-menu-button:focus-visible {
+            outline: 2px solid var(--df-gold-light);
+            outline-offset: 4px;
+        }
+
+        #title-screen .progression-side-panel {
+            grid-area: progress;
+            position: static;
+            width: 100%;
+            padding: 15px;
+            align-self: stretch;
+            border: 1px solid rgba(184, 154, 90, .38);
+            border-radius: 2px;
+            background: linear-gradient(110deg, rgba(35, 20, 19, .88), rgba(8, 7, 7, .68));
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .36);
+        }
+
+        #title-screen .progression-side-panel p {
+            color: var(--df-muted);
+        }
+
+        #title-screen .progression-side-panel h2 {
+            color: var(--df-gold-light);
+            font: 600 1rem Georgia, "Times New Roman", serif;
+        }
+
+        #title-screen .game-completion {
+            margin-bottom: 12px;
+            padding: 11px 12px;
+            border: 1px solid rgba(184, 154, 90, .32);
+            background: rgba(8, 7, 7, .52);
+        }
+
+        #title-screen .game-completion-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 7px;
+            color: var(--df-muted);
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        #title-screen .game-completion-heading strong {
+            color: var(--df-gold-light);
+            font: 700 1.35rem Georgia, "Times New Roman", serif;
+            letter-spacing: .02em;
+        }
+
+        #title-screen .game-completion-track {
+            height: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(184, 154, 90, .42);
+            background: rgba(0, 0, 0, .6);
+        }
+
+        #title-screen .game-completion-fill {
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--df-red-bright), var(--df-gold));
+            box-shadow: 0 0 10px rgba(184, 154, 90, .45);
+            transition: width .25s ease;
+        }
+
+        #title-screen .progression-side-panel .progression-menu-button {
+            min-height: 46px;
+        }
+
+        #title-screen .title-menu-layout > #player-stats-box {
+            grid-area: stats;
+            position: static;
+            top: auto;
+            right: auto;
+            bottom: auto;
+            left: auto;
+            display: flex;
+            align-self: end;
+            width: 100%;
+            max-width: 100%;
+            max-height: none;
+            transform: none;
+        }
+
+        #title-screen .title-edition {
+            color: var(--df-gold-light);
+        }
+
+        #title-screen .title-legal {
+            width: min(340px, calc(100vw - 24px));
+            border-color: rgba(184, 154, 90, .5);
+            border-radius: 3px;
+            background: linear-gradient(145deg, rgba(30, 24, 22, .9), rgba(10, 9, 9, .88));
+            box-shadow: 0 12px 32px rgba(0, 0, 0, .38);
+        }
+
+        #title-screen > .game-completion {
+            position: absolute;
+            right: max(24px, env(safe-area-inset-right));
+            bottom: calc(max(18px, env(safe-area-inset-bottom)) + 82px);
+            width: min(340px, calc(100vw - 24px));
+            margin: 0;
+        }
+
+        #title-screen #player-stats-box {
+            border-radius: 3px;
+            display: flex;
+            max-height: none;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            padding: 9px 14px;
+            transform: none;
+            border-color: rgba(184, 154, 90, .35);
+        }
+
+        #title-screen #player-stats-box div {
+            flex: 1 1 68px;
+            min-height: 20px;
+            margin: 0;
+            white-space: nowrap;
+            padding: 5px 7px;
+            border: 1px solid rgba(184, 154, 90, .14);
+            border-radius: 2px;
+            background: rgba(8, 8, 9, .34);
+        }
+
+        @keyframes df-title-atmosphere {
+            from { transform: scale(1) translateX(-.4%); opacity: .72; }
+            to { transform: scale(1.025) translateX(.4%); opacity: .92; }
+        }
+
+        @keyframes df-title-enter {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 1000px) and (min-width: 861px) {
+            #title-screen .title-menu-layout {
+                left: 24px;
+                width: min(470px, calc(100vw - 310px));
+                min-width: 0;
+                grid-template-columns: minmax(220px, 1.2fr) minmax(160px, .9fr);
+            }
+
+            #title-screen .progression-side-panel {
+                padding: 12px;
+            }
+
+            #title-screen .title-hero-wrapper {
+                top: 34px;
+                left: 68%;
+                width: 60vw;
+            }
+
+        }
+
+        @media (max-width: 860px) {
+            #title-screen {
+                justify-content: flex-start;
+                padding-bottom: max(24px, env(safe-area-inset-bottom));
+            }
+
+            #title-screen > .game-completion {
+                position: static;
+                flex: 0 0 auto;
+                width: min(420px, 100%);
+                margin: 16px auto 0;
+            }
+
+            #title-screen > .title-scene {
+                position: fixed;
+            }
+
+            .title-moon {
+                top: 43%;
+                left: 68%;
+                width: clamp(190px, 52vw, 320px);
+            }
+
+            .title-castle {
+                left: 68%;
+                width: max(360px, 88vw);
+                height: 48vh;
+                bottom: 5%;
+            }
+
+            .title-cliff {
+                width: 24%;
+                height: 62%;
+            }
+
+            .title-cliff-right {
+                width: 23%;
+                height: 56%;
+            }
+
+            .title-mist {
+                right: 2%;
+                left: 14%;
+            }
+
+            #title-screen .title-hero-wrapper {
+                position: relative;
+                top: auto;
+                left: auto;
+                width: 100%;
+                margin: 0 0 18px;
+                transform: none;
+            }
+
+            #title-screen .title-menu-layout {
+                position: relative;
+                top: auto;
+                left: auto;
+                display: flex;
+                flex-direction: column;
+                width: min(420px, 100%);
+                min-width: 0;
+                gap: 0;
+                margin: 0 auto;
+                transform: none;
+            }
+
+            #title-screen .title-legal {
+                width: min(420px, 100%);
+            }
+
+            #title-screen .menu-container {
+                width: 100%;
+            }
+
+            #title-screen .progression-side-panel {
+                width: 100%;
+                margin-top: 14px;
+            }
+
+            #title-screen .title-menu-layout > #player-stats-box {
+                position: static;
+                display: flex;
+                flex: 0 0 auto;
+                width: 100%;
+                max-width: 100%;
+                margin: 16px auto 0;
+                padding: 10px 14px;
+                transform: none;
+            }
+
+            #title-screen > .title-legal {
+                position: static;
+                flex: 0 0 auto;
+                width: min(420px, 100%);
+                margin: 16px auto 0;
+                text-align: center;
+            }
+
+            #title-screen .title-wiyotl-logo {
+                width: 40px;
+                height: 40px;
+                margin-bottom: 6px;
+            }
+
+            #title-screen .title-hero-wrapper {
+                margin-bottom: 18px;
+            }
+
+            #title-screen .title-menu-layout .menu-container > button {
+                min-height: 48px;
+            }
+
+            #title-screen #player-stats-box div {
+                flex: 1 1 90px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            #title-screen .title-hero {
+                font-size: clamp(2rem, 10vw, 3.2rem);
+                letter-spacing: clamp(.08em, .7vw, .14em);
+            }
+
+            #title-screen .title-subtitle {
+                font-size: clamp(.62rem, 2.6vw, .76rem);
+                letter-spacing: clamp(.12em, .8vw, .22em);
+            }
+
+            #title-screen .menu-container {
+                padding: 6px 10px;
+            }
+
+            #title-screen .menu-container > button {
+                min-height: 46px;
+                font-size: .92rem;
+            }
+
+            #title-screen #player-stats-box {
+                gap: 4px 10px;
+            }
+        }
+
+        @media (max-height: 700px) and (min-width: 861px) {
+            #title-screen {
+                height: 100vh;
+                height: 100dvh;
+                justify-content: flex-start;
+                overflow-x: hidden;
+                overflow-y: auto;
+                padding: 24px;
+            }
+
+            #title-screen .title-hero-wrapper {
+                position: relative;
+                top: auto;
+                left: auto;
+                width: min(640px, 100%);
+                margin: 0 auto 22px;
+                transform: none;
+            }
+
+            #title-screen .title-menu-layout {
+                position: relative;
+                top: auto;
+                left: auto;
+                width: min(516px, 100%);
+                margin: 0 auto;
+                transform: none;
+            }
+
+            #title-screen > .game-completion {
+                position: relative;
+                right: auto;
+                bottom: auto;
+                margin: 16px max(24px, env(safe-area-inset-right)) 0 auto;
+            }
+
+            #title-screen > .title-legal {
+                position: relative;
+                inset: auto;
+                margin: 16px auto 0;
+            }
+
+            #title-screen .title-menu-layout > #player-stats-box {
+                display: flex;
+                height: auto;
+                overflow: visible;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #title-screen::before {
+                animation: none;
+            }
+
+            #title-screen .title-hero-wrapper {
+                animation: none;
+            }
+
+            #title-screen .menu-container > button {
+                transition: none;
+            }
+        }
+
+        body.game-playing {
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        body.game-playing .canvas-wrapper {
+            width: min(100%, 800px);
+            overflow: hidden;
+        }
+
+        body.game-playing #gameCanvas {
+            display: block;
+            width: min(100%, 800px);
+            height: auto;
+            aspect-ratio: 4 / 3;
+        }
+
+        body.game-playing.mobile-touch-enabled {
+            padding:
+                max(6px, env(safe-area-inset-top))
+                max(8px, env(safe-area-inset-right))
+                max(8px, env(safe-area-inset-bottom))
+                max(8px, env(safe-area-inset-left));
+        }
+
+        body.game-playing.mobile-touch-enabled #ui {
+            width: min(100%, 800px);
+            justify-content: center;
+            gap: 5px 10px;
+            font-size: clamp(.68rem, 2.8vw, .82rem);
+        }
+
+        body.game-playing.mobile-touch-enabled .canvas-wrapper {
+            width: min(100%, 800px, calc((100dvh - 220px) * 4 / 3));
+            flex: 0 1 auto;
+        }
+
+        body.game-playing.mobile-touch-enabled #gameCanvas {
+            width: 100%;
+            max-height: calc(100dvh - 220px);
+            object-fit: contain;
+        }
+
+        body.game-playing.mobile-touch-enabled #boss-ui-container {
+            width: min(100%, 800px);
+            margin-block: 4px;
+        }
+
+        body.game-playing.mobile-touch-enabled .touch-controls {
+            inset: auto max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+                max(12px, env(safe-area-inset-left));
+            min-height: 132px;
+            align-items: flex-end;
+        }
+
+        @media (max-width: 420px) {
+            body.game-playing.mobile-touch-enabled .touch-controls {
+                inset-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
+            }
+
+            .touch-joystick { width:116px; height:116px; }
+            .touch-stick-knob { width:46px; height:46px; }
+            .touch-action-group { grid-template-columns:repeat(3,48px); gap:7px; }
+            .touch-controls button { width:48px; height:48px; }
+        }
+
+        @media (max-height: 520px) {
+            body.game-playing.mobile-touch-enabled .touch-joystick { width:98px; height:98px; }
+            body.game-playing.mobile-touch-enabled .touch-stick-knob { width:40px; height:40px; }
+            body.game-playing.mobile-touch-enabled .touch-controls { min-height:98px; }
+            body.game-playing.mobile-touch-enabled #gameCanvas { max-height:calc(100dvh - 154px); }
+            body.game-playing.mobile-touch-enabled .canvas-wrapper {
+                width:min(100%, 800px, calc((100dvh - 154px) * 4 / 3));
+            }
+        }
+
+        @media (max-width: 860px) {
+            #title-screen .title-menu-layout {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas:
+                    "menu"
+                    "progress"
+                    "stats";
+                gap: 12px;
+            }
+
+            #title-screen .title-menu-layout > .menu-container { grid-area: menu; }
+            #title-screen .title-menu-layout > .progression-side-panel { grid-area: progress; }
+            #title-screen .title-menu-layout > #player-stats-box { grid-area: stats; }
+
+            .overlay-screen:not(#title-screen) {
+                height: 100dvh;
+                min-height: 0;
+                padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+                overflow-x: hidden;
+                overflow-y: auto;
+                justify-content: flex-start;
+            }
+
+            .overlay-screen:not(#title-screen) > :is(
+                .world-select-panel, .options-panel, .missions-panel, .boss-reward-panel,
+                .shop-panel, .pause-panel, .gameover-panel, .credits-panel, .phase3-panel
+            ) {
+                box-sizing: border-box;
+                max-width: 100%;
+                max-height: calc(100dvh - 32px);
+                margin-block: auto;
+                flex: 0 0 auto;
+                overflow-x: hidden;
+                overflow-y: auto;
+                overflow-wrap: anywhere;
+            }
+
+            .credits-logo {
+                width: min(220px, 100%);
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 700px) {
+            #title-screen .title-menu-layout > .menu-container {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+            }
+
+            #title-screen .title-menu-layout .menu-container > button {
+                min-width: 0;
+                min-height: 48px;
+                padding: 8px;
+                font-size: clamp(.72rem, 2.8vw, .88rem);
+                line-height: 1.2;
+                letter-spacing: .04em;
+                text-align: center;
+            }
+
+            #title-screen .title-menu-layout > #player-stats-box {
+                margin-top: 0;
+            }
+        }
+
+        @media (max-width: 860px) and (orientation: landscape) {
+            #title-screen .title-menu-layout {
+                grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr);
+                grid-template-areas:
+                    "menu progress"
+                    "stats stats";
+                width: min(620px, 100%);
+            }
+
+            #title-screen .title-menu-layout > .progression-side-panel {
+                margin: 0;
+            }
+
+            #title-screen .title-menu-layout > #player-stats-box {
+                width: 100%;
+                margin-top: 0;
+            }
+        }
+
+        @media (max-width: 860px) and (max-height: 700px) {
+            #title-screen .title-hero-wrapper {
+                margin-bottom: 12px;
+            }
+
+            #title-screen .title-menu-layout {
+                gap: 8px;
+            }
+
+            #title-screen .title-menu-layout > #player-stats-box {
+                padding: 7px 10px;
+            }
+
+            #title-screen .title-legal {
+                margin-top: 10px;
+                padding: 8px 10px;
+            }
+        }
+
+        @media (min-width: 861px) and (max-width: 1100px) {
+            #title-screen {
+                height: 100vh;
+                height: 100dvh;
+                min-height: 100dvh;
+                justify-content: flex-start;
+                overflow-x: hidden;
+                overflow-y: auto;
+                padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+            }
+
+            #title-screen .title-hero-wrapper {
+                position: relative;
+                inset: auto;
+                width: min(700px, 100%);
+                margin: 0 auto 24px;
+                transform: none;
+            }
+
+            #title-screen .title-menu-layout {
+                position: relative;
+                inset: auto;
+                display: grid;
+                grid-template-columns: minmax(0, 1.15fr) minmax(200px, .85fr);
+                grid-template-areas:
+                    "menu progress"
+                    "stats stats";
+                gap: 14px;
+                width: min(700px, 100%);
+                min-width: 0;
+                margin: 0 auto;
+                transform: none;
+            }
+
+            #title-screen .menu-container {
+                grid-area: menu;
+                width: 100%;
+            }
+
+            #title-screen .progression-side-panel {
+                position: static;
+                grid-area: progress;
+                width: auto;
+                margin: 0;
+            }
+
+            #title-screen .title-menu-layout > #player-stats-box {
+                position: static;
+                grid-area: stats;
+                width: 100%;
+                max-width: none;
+                margin: 0;
+                transform: none;
+            }
+
+            #title-screen > .game-completion,
+            #title-screen > .title-legal {
+                position: static;
+                width: min(700px, 100%);
+                margin: 16px auto 0;
+            }
+        }
+
+        @media (max-width: 860px) {
+            .overlay-screen:not(#title-screen) {
+                min-height: 100vh;
+                min-height: 100dvh;
+                padding:
+                    max(8px, env(safe-area-inset-top))
+                    max(8px, env(safe-area-inset-right))
+                    max(8px, env(safe-area-inset-bottom))
+                    max(8px, env(safe-area-inset-left));
+                overscroll-behavior: contain;
+            }
+
+            .overlay-screen:not(#title-screen) > :is(
+                .world-select-panel, .options-panel, .missions-panel, .boss-reward-panel,
+                .shop-panel, .pause-panel, .gameover-panel, .credits-panel, .phase3-panel
+            ) {
+                width: min(100%, 720px);
+                max-height: calc(100dvh - 16px);
+                margin-block: 0;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .overlay-screen .btn-ui,
+            .overlay-screen .btn-shop,
+            .overlay-screen .btn-skins,
+            .overlay-screen .btn-level,
+            .overlay-screen .missions-filter {
+                min-height: 44px;
+                touch-action: manipulation;
+            }
+
+            body.game-playing {
+                width: 100%;
+                height: 100vh;
+                height: 100dvh;
+                min-height: 100dvh;
+                justify-content: flex-start;
+                overflow: hidden;
+                padding:
+                    max(6px, env(safe-area-inset-top))
+                    max(8px, env(safe-area-inset-right))
+                    max(6px, env(safe-area-inset-bottom))
+                    max(8px, env(safe-area-inset-left));
+            }
+
+            body.game-playing > h1 {
+                display: none;
+            }
+
+            body.game-playing #ui,
+            body.game-playing #boss-ui-container {
+                flex: 0 0 auto;
+                width: min(100%, 800px);
+                min-width: 0;
+            }
+
+            body.game-playing .canvas-wrapper {
+                display: grid;
+                place-items: center;
+                flex: 1 1 0;
+                width: min(100%, 800px);
+                min-width: 0;
+                min-height: 0;
+                overflow: hidden;
+            }
+
+            body.game-playing #gameCanvas {
+                width: auto;
+                height: auto;
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+
+            body.game-playing.mobile-touch-enabled .canvas-wrapper {
+                padding-bottom: clamp(72px, 18vh, 128px);
+            }
+
+            body.game-playing.mobile-touch-enabled #ui {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+                justify-content: stretch;
+                gap: 4px;
+                padding: 6px;
+                font-size: clamp(.65rem, 2.5vw, .8rem);
+            }
+
+            body.game-playing.mobile-touch-enabled #ui .ui-group {
+                justify-content: center;
+                gap: 4px;
+                min-width: 0;
+                flex-wrap: wrap;
+                text-align: center;
+            }
+
+            body.game-playing.mobile-touch-enabled .bar-container {
+                width: clamp(42px, 13vw, 80px);
+            }
+
+            body.game-playing.mobile-touch-enabled #boss-ui-container {
+                gap: 6px 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+                padding: 6px 8px;
+            }
+
+            body.game-playing.mobile-touch-enabled #boss-ui-container > div:last-child {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                width: min(100%, 420px);
+            }
+
+            body.game-playing.mobile-touch-enabled .boss-bar-container {
+                width: auto;
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 520px) {
+            #title-screen {
+                padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
+            }
+
+            #title-screen .title-menu-layout,
+            #title-screen > .game-completion,
+            #title-screen > .title-legal {
+                width: 100%;
+            }
+
+            #title-screen .title-menu-layout > .menu-container {
+                padding-inline: 0;
+            }
+
+            #title-screen .progression-side-panel {
+                padding: 12px;
+            }
+
+            .world-select-panel,
+            .options-panel,
+            .missions-panel,
+            .shop-panel,
+            .skins-panel,
+            .phase3-panel,
+            .boss-reward-panel,
+            .pause-panel,
+            .gameover-panel,
+            .credits-panel {
+                border-radius: 12px;
+                padding: 14px;
+            }
+
+            .phase4-summary,
+            .phase4-mission,
+            .phase4-audit {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .phase4-mission,
+            .phase4-audit {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .phase3-button-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .missions-dashboard {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 380px) {
+            body.game-playing.mobile-touch-enabled #ui {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-controls {
+                inset-inline: max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-right));
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-joystick {
+                width: 100px;
+                height: 100px;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-action-group {
+                grid-template-columns: repeat(3, 44px);
+                gap: 5px;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-controls button {
+                width: 44px;
+                height: 44px;
+            }
+        }
+
+        @media (max-width: 860px) and (max-height: 520px) {
+            #title-screen {
+                padding-block: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-bottom));
+            }
+
+            #title-screen .title-hero-wrapper {
+                margin-bottom: 10px;
+            }
+
+            body.game-playing.mobile-touch-enabled .canvas-wrapper {
+                padding-bottom: 68px;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-joystick {
+                width: 84px;
+                height: 84px;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-stick-knob {
+                width: 38px;
+                height: 38px;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-controls {
+                inset-block-end: max(6px, env(safe-area-inset-bottom));
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-action-group {
+                grid-template-columns: repeat(3, 44px);
+                gap: 5px;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-controls button {
+                width: 44px;
+                height: 44px;
+            }
+        }
+
+        @media (max-width: 860px) {
+            #title-screen {
+                height: 100vh;
+                height: 100dvh;
+                min-height: 100dvh;
+                justify-content: flex-start;
+                overflow-x: hidden;
+                overflow-y: auto;
+                overscroll-behavior-y: contain;
+            }
+
+            #title-screen > .title-scene {
+                position: fixed;
+            }
+        }
+
+        body.game-playing.mobile-touch-enabled {
+            justify-content: flex-start;
+        }
+
+        body.game-playing.mobile-touch-enabled .canvas-wrapper {
+            display: grid;
+            place-items: center;
+            flex: 0 1 auto;
+            width: min(100%, 800px, calc((100dvh - 300px) * 4 / 3));
+            min-width: 0;
+            min-height: 0;
+        }
+
+        body.game-playing.mobile-touch-enabled #gameCanvas {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            max-height: calc(100dvh - 300px);
+            object-fit: contain;
+        }
+
+        @media (max-height: 520px) {
+            body.game-playing.mobile-touch-enabled .canvas-wrapper {
+                width: min(100%, 800px, calc((100dvh - 180px) * 4 / 3));
+            }
+
+            body.game-playing.mobile-touch-enabled #gameCanvas {
+                max-height: calc(100dvh - 180px);
+            }
+        }
+
+        @media (max-width: 860px) {
+            body.game-playing.mobile-touch-enabled {
+                width: 100%;
+                height: 100vh;
+                height: 100dvh;
+                min-height: 0;
+                padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                    env(safe-area-inset-bottom) env(safe-area-inset-left);
+                gap: 0;
+                justify-content: flex-start;
+                overflow: hidden;
+            }
+
+            body.game-playing.mobile-touch-enabled #ui {
+                display: grid;
+                flex: 0 0 auto;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                width: 100%;
+                gap: 3px;
+                margin: 0;
+                padding: 5px;
+                font-size: clamp(.62rem, 2.5vw, .78rem);
+            }
+
+            body.game-playing.mobile-touch-enabled #ui .ui-group {
+                min-width: 0;
+                justify-content: center;
+                gap: 3px;
+                text-align: center;
+            }
+
+            body.game-playing.mobile-touch-enabled .bar-container {
+                width: clamp(36px, 12vw, 72px);
+            }
+
+            body.game-playing.mobile-touch-enabled .canvas-wrapper {
+                display: block;
+                flex: 1 1 0;
+                width: 100%;
+                height: 0;
+                min-width: 0;
+                min-height: 0;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+
+            body.game-playing.mobile-touch-enabled #gameCanvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+                max-width: none;
+                max-height: none;
+                aspect-ratio: auto;
+                margin: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+                object-fit: contain;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-controls {
+                inset: auto max(8px, env(safe-area-inset-right))
+                    max(8px, env(safe-area-inset-bottom))
+                    max(8px, env(safe-area-inset-left));
+            }
+        }
+
+        @media (max-width: 380px) {
+            body.game-playing.mobile-touch-enabled #ui {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-loading-screen" class="loading-screen" role="status" aria-live="polite">
+        <div class="loading-content">
+            <div class="loading-brand">
+                <h1 class="loading-title">DUNGEONS</h1>
+                <p class="loading-subtitle">The Curse of the Dungeon</p>
+            </div>
+            <img class="loading-logo" src="wiyotl_logo.webp" alt="Logo Wiyotl" width="76" height="76">
+            <span class="loading-logo-fallback" hidden aria-label="Wiyotl">W</span>
+            <div class="loading-atmosphere-copy">
+                <p class="loading-developer-credit">Développé par Wiyotl</p>
+                <p id="loading-game-tip" class="loading-game-tip"></p>
+            </div>
+        </div>
+        <div class="loading-progress-area">
+            <div class="loading-status">
+                <strong id="loading-status-text">Initialisation du moteur…</strong>
+                <span id="loading-progress-text">0 %</span>
+            </div>
+            <div id="loading-progress-track" class="loading-track" role="progressbar"
+                 aria-label="Chargement du jeu" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="loading-progress-fill" class="loading-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TITLE SCREEN -->
+    <div id="title-screen" class="overlay-screen">
+        <div class="title-scene" aria-hidden="true">
+            <div class="title-moon"></div>
+            <div class="title-castle"></div>
+            <div class="title-cliffs">
+                <div class="title-cliff title-cliff-left"></div>
+                <div class="title-cliff title-cliff-right"></div>
+            </div>
+            <div class="title-mist"></div>
+        </div>
+        <div class="title-hero-wrapper">
+            <img class="title-wiyotl-logo" src="wiyotl_logo.webp" alt="Logo Wiyotl" width="48" height="48">
+            <div class="title-hero">DUNGEONS</div>
+            <div class="title-subtitle">The Curse of the Dungeon</div>
+            <div class="title-studio">Web Edition</div>
+        </div>
+        <div class="title-menu-layout">
+        <div class="menu-container">
+            <button class="btn-ui" onclick="openNewGameConfirm()">NOUVELLE PARTIE <span>▶</span></button>
+            <button id="btn-continue" class="btn-ui" onclick="openWorldSelect()">JOUER <span>&gt;</span></button>
+            <button class="btn-ui" onclick="openTutorial()">TUTORIEL <span>?</span></button>
+            <button class="btn-shop" onclick="openShop()">BOUTIQUE <span>💰</span></button>
+            <button class="btn-skins" onclick="openSkins()">SKINS <span>👤</span></button>
+            <button class="btn-ui" onclick="openOptions()">OPTIONS <span>⚙</span></button>
+            <button class="btn-ui" onclick="openMissions()">MISSIONS SECONDAIRES <span>★</span></button>
+        </div>
+        <aside class="progression-side-panel" aria-label="Accès à la progression et aux défis">
+            <div class="progression-side-kicker">Espace joueur</div>
+            <h2>PROGRESSION<br>&amp; DÉFIS</h2>
+            <p>Configurez votre build, consultez vos statistiques et lancez les modes spéciaux.</p>
+            <button class="btn-ui progression-menu-button" onclick="openPhase3()" aria-label="Ouvrir la progression et les défis">
+                <span class="progression-menu-content">
+                    <span class="progression-menu-title">OUVRIR</span>
+                    <span class="progression-menu-subtitle">Difficulté et défis</span>
+                </span>
+                <span class="progression-menu-icon">⚔</span>
+            </button>
+        </aside>
+        <aside id="player-stats-box" aria-label="Statistiques du joueur">
+            <div>❤️ <span id="menu-hp" aria-label="Points de vie actuels, maximum et plafond"></span></div>
+            <div>⚔️ <span id="menu-attack"></span></div>
+            <div>🛡️ <span id="menu-defense"></span></div>
+            <div>🏃 <span id="menu-speed"></span></div>
+            <div>🪙 <span id="menu-gold"></span></div>
+        </aside>
+        </div>
+        <section class="game-completion" aria-label="Avancement global du jeu">
+            <div class="game-completion-heading">
+                <span>Complétion du jeu</span>
+                <strong id="game-completion-percent">0%</strong>
+            </div>
+            <div
+                id="game-completion-track"
+                class="game-completion-track"
+                role="progressbar"
+                aria-label="Avancement global du jeu"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0">
+                <div id="game-completion-fill" class="game-completion-fill"></div>
+            </div>
+        </section>
+        <footer class="title-legal">
+            <div class="title-edition"><span>WEB EDITION</span><span>VER. 1.0.0</span></div>
+            <div class="title-legal-note">Wiyotl est une marque déposée.<br>Tous droits réservés.</div>
+            <nav class="title-legal-links" aria-label="Informations et assistance">
+                <a href="./privacy.html">Confidentialité</a>
+                <a href="mailto:contact.wiyotl@gmail.com">Support</a>
+            </nav>
+        </footer>
+    </div>
+
+    <!-- WORLD SELECT SCREEN -->
+    <div id="world-select-screen" class="overlay-screen hidden">
+        <div class="world-select-panel">
+            <h2>SÉLECTION DU MONDE</h2>
+            <p id="world-select-message" class="world-select-message" aria-live="polite"></p>
+            <div id="world-select-container"></div>
+            <div style="margin-top: 20px;">
+                <button class="btn-ui" style="width: 100%; justify-content: center;" onclick="backFromWorldSelect()">RETOURNER</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTIONS SCREEN -->
+    <div id="options-screen" class="overlay-screen hidden">
+        <div class="options-panel">
+            <h2 class="options-title">⚙️ OPTIONS</h2>
+            <div class="options-grid">
+                <section class="options-card">
+                    <h3>🔊 AUDIO</h3>
+                    <div class="options-row">
+                        <label for="master-volume">Volume général</label>
+                        <input id="master-volume" class="options-range" type="range" min="0" max="100" value="100" oninput="updateAudioSetting('masterVolume', this.value)">
+                        <span id="master-volume-value" class="options-value">100%</span>
+                    </div>
+
+                    <div class="options-row">
+                        <label for="music-volume">Musique</label>
+                        <input id="music-volume" class="options-range" type="range" min="0" max="100" value="80" oninput="updateAudioSetting('musicVolume', this.value)">
+                        <span id="music-volume-value" class="options-value">80%</span>
+                    </div>
+                    <div class="options-row">
+                        <label for="sfx-volume">Effets sonores</label>
+                        <input id="sfx-volume" class="options-range" type="range" min="0" max="100" value="100" oninput="updateAudioSetting('sfxVolume', this.value)">
+                        <span id="sfx-volume-value" class="options-value">100%</span>
+                    </div>
+                </section>
+
+                <section class="options-card">
+                    <h3>🎮 CONTRÔLES</h3>
+                    <div class="options-controls">
+                        <div class="options-control"><span>Déplacement</span><b>ZQSD ou Flèches</b></div>
+                        <div class="options-control"><span>Attaque</span><b>Espace</b></div>
+                        <div class="options-control"><span>Interagir</span><b>E</b></div>
+                        <div class="options-control"><span>Parade</span><b>F</b></div>
+                        <div class="options-control"><span>Dash</span><b>Shift</b></div>
+                        <div class="options-control"><span>Pause</span><b>Échap ou P</b></div>
+                    </div>
+                </section>
+
+                <section class="options-card">
+                    <h3>🖥️ AFFICHAGE</h3>
+                    <div class="options-row">
+                        <label for="show-damage">Afficher les dégâts</label>
+                        <input id="show-damage" class="options-check" type="checkbox" checked onchange="updateDisplaySetting('showDamage', this.checked)">
+                    </div>
+                    <div class="options-row">
+                        <label for="show-particles">Afficher les particules</label>
+                        <input id="show-particles" class="options-check" type="checkbox" checked onchange="updateDisplaySetting('showParticles', this.checked)">
+                    </div>
+                    <div class="options-row">
+                        <label for="show-enemy-bars">Afficher les barres de vie ennemies</label>
+                        <input id="show-enemy-bars" class="options-check" type="checkbox" checked onchange="updateDisplaySetting('showEnemyBars', this.checked)">
+                    </div>
+                    <div class="options-row">
+                        <label for="show-fps">Afficher les FPS</label>
+                        <input id="show-fps" class="options-check" type="checkbox" onchange="updateDisplaySetting('showFps', this.checked)">
+                    </div>
+                    <div class="options-row">
+                        <label for="high-contrast">Contraste renforcé</label>
+                        <input id="high-contrast" class="options-check" type="checkbox" onchange="updateDisplaySetting('highContrast', this.checked)">
+                    </div>
+                    <div class="options-row">
+                        <label for="reduced-motion">Réduire les animations</label>
+                        <input id="reduced-motion" class="options-check" type="checkbox" onchange="updateDisplaySetting('reducedMotion', this.checked)">
+                    </div>
+                    <div class="options-row">
+                        <label for="large-text">Texte agrandi</label>
+                        <input id="large-text" class="options-check" type="checkbox" onchange="updateDisplaySetting('largeText', this.checked)">
+                    </div>
+                </section>
+
+                <section class="options-card">
+                    <h3>💾 SAUVEGARDE</h3>
+                    <div class="options-actions">
+                        <button class="btn-ui" onclick="saveFromOptions()">SAUVEGARDER MAINTENANT</button>
+                        <button class="btn-ui" onclick="confirmResetSave()">RÉINITIALISER LA SAUVEGARDE</button>
+                    </div>
+                    <h3>☁️ SAUVEGARDE CLOUD</h3>
+                    <p id="cloud-save-status" aria-live="polite">Non connecté. Configurez Supabase pour activer la synchronisation.</p>
+                    <label for="cloud-email">E-mail</label>
+                    <input id="cloud-email" type="email" autocomplete="email" placeholder="vous@exemple.fr">
+                    <label for="cloud-password">Mot de passe</label>
+                    <input id="cloud-password" type="password" autocomplete="current-password" minlength="8">
+                    <div class="options-actions">
+                        <button class="btn-ui" onclick="cloudSignUp()">CRÉER UN COMPTE</button>
+                        <button class="btn-ui" onclick="cloudSignIn()">SE CONNECTER</button>
+                        <button class="btn-ui" onclick="cloudSignOut()">SE DÉCONNECTER</button>
+                        <button class="btn-ui" onclick="cloudUploadSave()">ENVOYER LA SAUVEGARDE LOCALE</button>
+                        <button class="btn-ui" onclick="cloudDownloadSave()">CHARGER LA SAUVEGARDE CLOUD</button>
+                    </div>
+                    <small>Le chargement cloud remplace la progression locale après validation. Aucun écrasement automatique.</small>
+                </section>
+
+                <section class="options-card">
+                    <h3>📊 INFORMATIONS</h3>
+                    <div class="options-info">
+                        <div>Dungeons : The Curse of The Dungeon <span>Version 1.0.0</span></div>
+                        <div>Développeur <span>Wiyotl</span></div>
+                        <div>Mondes <span>3</span></div>
+                        <div>Niveaux <span>21</span></div>
+                    </div>
+                </section>
+            </div>
+            <div class="options-footer">
+                <button class="btn-ui" style="width: 100%; justify-content: center;" onclick="closeOptions()">RETOURNER</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECONDARY MISSIONS SCREEN -->
+    <div id="missions-screen" class="overlay-screen hidden">
+        <div class="missions-panel">
+            <h2 class="missions-title">MISSIONS SECONDAIRES</h2>
+            <div class="missions-summary">
+                <div class="missions-progress-track">
+                    <div id="missions-global-progress" class="missions-progress-fill"></div>
+                </div>
+                <div class="missions-summary-line">
+                    <strong id="missions-global-percent">0%</strong>
+                    <span id="missions-completed-count">0 / 30 missions terminées</span>
+                </div>
+            </div>
+            <div class="missions-dashboard" aria-label="Résumé des missions">
+                <div class="missions-dashboard-card"><strong id="missions-completed-total">0</strong><span>Terminées</span></div>
+                <div class="missions-dashboard-card"><strong id="missions-active-total">0</strong><span>En cours</span></div>
+                <div class="missions-dashboard-card"><strong id="missions-remaining-total">0</strong><span>Restantes</span></div>
+            </div>
+            <div class="missions-toolbar" role="toolbar" aria-label="Filtrer les missions">
+                <button class="missions-filter active" data-mission-filter="all" onclick="setMissionFilter('all')">Toutes</button>
+                <button class="missions-filter" data-mission-filter="active" onclick="setMissionFilter('active')">En cours</button>
+                <button class="missions-filter" data-mission-filter="completed" onclick="setMissionFilter('completed')">Terminées</button>
+                <span id="missions-filter-count" class="missions-filter-count"></span>
+            </div>
+            <div id="missions-container"></div>
+            <div class="options-footer">
+                <button class="btn-ui" style="width: 100%; justify-content: center;" onclick="closeMissions()">RETOURNER</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="boss-reward-screen" class="overlay-screen hidden">
+        <div class="boss-reward-panel">
+            <h2 class="boss-reward-title">👑 BOSS VAINCU !</h2>
+            <div id="boss-reward-boss" class="boss-reward-boss"></div>
+            <div class="boss-reward-list">
+                <h3>RÉCOMPENSES OBTENUES</h3>
+                <div id="boss-reward-items"></div>
+            </div>
+            <div class="boss-mission-list">
+                <h3>MISSIONS SECONDAIRES TERMINÉES</h3>
+                <div id="boss-reward-missions"></div>
+            </div>
+            <button class="btn-ui" style="width:100%;justify-content:center;" onclick="continueAfterBossReward()">CONTINUER <span>▶</span></button>
+        </div>
+    </div>
+
+    <!-- SHOP SCREEN -->
+    <div id="shop-screen" class="overlay-screen hidden">
+        <div class="shop-panel">
+            <div class="shop-header">
+                <h1 class="shop-title">BOUTIQUE</h1>
+                <div class="shop-wallet">🪙 <span id="shop-gold-display">0</span> disponibles</div>
+            </div>
+            <div class="shop-category">
+                <h2>👤 Tous les skins de joueur</h2>
+                <p class="shop-category-intro">Débloquez un skin puis équipez-le depuis la page Skins.</p>
+                <div class="shop-item-grid">
+                    <div class="shop-item-card"><div class="shop-item-icon">🔴</div><div class="shop-item-content"><strong>Skin Rouge</strong><small>Énergie offensive · 100 🪙</small></div><button class="btn-ui" data-product-id="skin-red" data-price="100" onclick="buySkin('red',100)">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🟢</div><div class="shop-item-content"><strong>Skin Vert</strong><small>Esprit naturel · 200 🪙</small></div><button class="btn-ui" data-product-id="skin-green" data-price="200" onclick="buySkin('green',200)">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🟣</div><div class="shop-item-content"><strong>Skin Violet</strong><small>Affinité arcanique · 300 🪙</small></div><button class="btn-ui" data-product-id="skin-purple" data-price="300" onclick="buySkin('purple',300)">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🟡</div><div class="shop-item-content"><strong>Skin Or</strong><small>Rareté légendaire · 500 🪙</small></div><button class="btn-ui" data-product-id="skin-gold" data-price="500" onclick="buySkin('gold',500)">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🔵</div><div class="shop-item-content"><strong>Skin Cyan</strong><small>Éclat cristallin · 350 🪙</small></div><button class="btn-ui" data-product-id="skin-cyan" data-price="350" onclick="buySkin('cyan',350)">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🔻</div><div class="shop-item-content"><strong>Skin Cramoisi</strong><small>Fureur du champion · 650 🪙</small></div><button class="btn-ui" data-product-id="skin-crimson" data-price="650" onclick="buySkin('crimson',650)">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">⚫</div><div class="shop-item-content"><strong>Skin Ombre</strong><small>Silence du Néant · 900 🪙</small></div><button class="btn-ui" data-product-id="skin-shadow" data-price="900" onclick="buySkin('shadow',900)">ACHETER</button></div>
+                </div>
+            </div>
+            <div class="shop-category">
+                <h2>⚔️ Tous les renforcements</h2>
+                <p class="shop-category-intro">Améliorez durablement les capacités de votre héros.</p>
+                <div class="shop-item-grid">
+                    <div class="shop-item-card"><div class="shop-item-icon">⚔️</div><div class="shop-item-content"><strong>Attaque améliorée</strong><small>+5 dégâts · 100 🪙</small></div><button class="btn-ui" data-product-id="attack-upgrade" data-price="100" data-repeatable="true" onclick="buyAttackUpgrade()">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">❤️</div><div class="shop-item-content"><strong>Vie améliorée</strong><small>+20 PV max · 50 🪙</small></div><button class="btn-ui" data-product-id="health-upgrade" data-price="50" data-repeatable="true" onclick="buyHealthUpgrade()">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🏃</div><div class="shop-item-content"><strong>Vitesse améliorée</strong><small>+0,3 vitesse · 60 🪙</small></div><button class="btn-ui" data-product-id="speed-upgrade" data-price="60" data-repeatable="true" onclick="buySpeedUpgrade()">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🛡️</div><div class="shop-item-content"><strong>Défense améliorée</strong><small>+5% défense · 150 🪙</small></div><button class="btn-ui" data-product-id="defense-upgrade" data-price="150" data-repeatable="true" onclick="buyDefenseUpgrade()">ACHETER</button></div>
+                </div>
+            </div>
+            <div class="shop-category">
+                <h2>✨ Artefacts permanents</h2>
+                <p class="shop-category-intro">Achetez chaque artefact une seule fois pour conserver son pouvoir dans toutes vos parties.</p>
+                <div class="shop-item-grid">
+                    <div class="shop-item-card"><div class="shop-item-icon">🎯</div><div class="shop-item-content"><strong>Précision</strong><small>22% de coups critiques · 450 🪙</small></div><button class="btn-ui" data-product-id="ability-precision" data-price="450" onclick="buyShopPower('ability-precision',450,'abilities','precision','Précision activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🔥</div><div class="shop-item-content"><strong>Flamme ardente</strong><small>Les attaques appliquent Brûlure · 500 🪙</small></div><button class="btn-ui" data-product-id="ability-ember" data-price="500" onclick="buyShopPower('ability-ember',500,'abilities','ember','Flamme ardente activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">❄️</div><div class="shop-item-content"><strong>Relique de givre</strong><small>Les attaques ralentissent les ennemis · 550 🪙</small></div><button class="btn-ui" data-product-id="relic-frost" data-price="550" onclick="buyShopPower('relic-frost',550,'relics','frost','Relique de givre activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🧿</div><div class="shop-item-content"><strong>Égide protectrice</strong><small>Réduit les dégâts des pièges · 600 🪙</small></div><button class="btn-ui" data-product-id="relic-ward" data-price="600" onclick="buyShopPower('relic-ward',600,'relics','ward','Égide protectrice activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🩸</div><div class="shop-item-content"><strong>Relique sanguinaire</strong><small>Récupérez 4% des dégâts infligés en PV · 700 🪙</small></div><button class="btn-ui" data-product-id="relic-leech" data-price="700" onclick="buyShopPower('relic-leech',700,'relics','leech','Relique sanguinaire activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🪙</div><div class="shop-item-content"><strong>Idole dorée</strong><small>Obtenez 25% d’or supplémentaire · 650 🪙</small></div><button class="btn-ui" data-product-id="relic-fortune" data-price="650" onclick="buyShopPower('relic-fortune',650,'relics','fortune','Idole dorée activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🪨</div><div class="shop-item-content"><strong>Cœur de pierre</strong><small>Subissez 10% de dégâts en moins · 800 🪙</small></div><button class="btn-ui" data-product-id="relic-shell" data-price="800" onclick="buyShopPower('relic-shell',800,'relics','shell','Cœur de pierre activé !')">ACHETER</button></div>
+                </div>
+            </div>
+            <div class="shop-footer">
+                <button
+                    class="btn-ui"
+                    style="width:100%;justify-content:center;"
+                    onclick="closeShop()">
+                    RETOURNER
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!--SKINS PAGE-->
+    <div id="skins-screen" class="overlay-screen hidden">
+        <div class="shop-panel">
+            <div class="skins-header"><h1 class="shop-title">SKINS</h1><div class="shop-wallet">✨ Collection du héros</div></div>
+            <div class="skins-summary"><span>Skin équipé : <strong id="equipped-skin-name">DEFAULT</strong></span><span><strong id="owned-skins-count">1</strong> débloqué(s)</span></div>
+            <div id="skins-container">
+
+            </div>
+            <div class="shop-footer">
+                <button
+                    class="btn-ui"
+                    onclick="closeSkins()">
+                    RETOURNER
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONFIRM NEW GAME SCREEN -->
+    <div id="newgame-confirm-screen" class="overlay-screen hidden">
+        <div class="shop-panel">
+            <h1 class="shop-title">
+                NOUVELLE PARTIE 
+            </h1>
+            <div class="shop-category">
+                <p style="
+                    text-align:center;
+                    font-size:18px;
+                    color:#ffffff;
+                ">
+                    Toute votre progression sera supprimée.
+                </p>
+                <p style="
+                    text-align:center;
+                    color:#f9d342;
+                    margin-top:10px;
+                ">
+                    Skins, améliorations, or et sauvegarde seront réinitialisés.
+                </p>
+            </div>
+            <div style="
+                display:flex;
+                gap:15px;
+                margin-top:20px;
+            ">
+                <button
+                    class="btn-ui"
+                    style="flex:1;"
+                    onclick="confirmNewGame()">
+                    OUI
+                </button>
+                <button
+                    class="btn-ui"
+                    style="flex:1;"
+                    onclick="showOverlay('title-screen')">
+                    NON
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAUSE MENU -->
+    <div id="pause-screen" class="overlay-screen hidden">
+        <div class="pause-panel">
+            <div class="pause-header">PAUSE</div>
+            <div class="pause-stats">
+                <div class="pause-stats-row">Secteur : <span id="pause-world-info">Monde 1-1</span></div>
+                <div class="pause-stats-row">Capital Or : <span id="pause-gold-info">0 🪙</span></div>
+                <div class="pause-stats-row">Score Tactique : <span id="pause-score-info">0</span></div>
+            </div>
+            <div class="menu-container" style="width: 100%;">
+                <button class="btn-ui" onclick="resumeGame()">REPRENDRE <span>▶</span></button>
+                <button class="btn-shop" onclick="openShop()">BOUTIQUE <span>💰</span></button>
+                <button class="btn-ui" onclick="openWorldSelectFromPause()">SÉLECTION NIVEAU <span>🧭</span></button>
+                <button class="btn-ui" onclick="returnToTitle()">MENU TITRE <span>⌂</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameover-screen" class="overlay-screen hidden">
+        <div class="gameover-panel">
+            <h1 class="gameover-title">
+                GAME OVER
+            </h1>
+            <div class="gameover-subtitle">
+                Votre aventure s'arrête ici...
+            </div>
+            <div class="gameover-stats">
+                
+                <div class="stat-row">
+                    <span>🌍 Monde atteint</span>
+                    <span id="gameover-world">1</span>
+                </div>
+                <div class="stat-row">
+                    <span>⚔️ Niveau atteint</span>
+                    <span id="gameover-level">1</span>
+                </div>
+                <div class="stat-row">
+                    <span>🪙 Or</span>
+                    <span id="gameover-gold">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>🏆 Score</span>
+                    <span id="gameover-score">0</span>
+                </div>
+            </div>
+            <div class="gameover-buttons">
+                <button id="retry-btn" class="btn-ui">
+                     Réessayer 🔄
+                </button>
+                <button id="shop-from-death-btn" class="btn-shop">
+                     Boutique 💰
+                </button>
+                <button id="gameover-share-result-btn" class="btn-ui" onclick="shareDailyChallengeResult()" hidden>
+                    Partager le résultat 🔗
+                </button>
+                <button id="back-title-btn" class="btn-ui">
+                    Menu Titre ⌂
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="victory-screen" class="overlay-screen hidden">
+        <div class="gameover-panel">
+            <h1 class="victory-title">
+                VICTOIRE !
+            </h1>
+            <div class="victory-subtitle">
+                Vous avez vaincu tous les boss et la malédiction du donjon est levée !
+                Félicitations pour votre triomphe !
+            </div>
+            <div class="gameover-stats">
+                <div class="stat-row">
+                    <span>🌍 Monde terminé</span>
+                    <span id="victory-world">3</span>
+                </div>
+                <div class="stat-row">
+                    <span>⚔️ Niveau terminé</span>
+                    <span id="victory-level">7</span>
+                </div>
+                <div class="stat-row">
+                    <span>🪙 Or total</span>
+                <span id="victory-gold">0</span>
+            </div>
+            <div class="stat-row">
+                <span>🏆 Score final</span>
+                <span id="victory-score">0</span>
+            </div>
+            <div class="stat-row">
+                <span>❤️ PV restants</span>
+                <span id="victory-hp">0</span>
+            </div>
+        </div>
+        <div class="gameover-buttons">
+            <button id="victory-retry-btn" class="btn-ui">
+                 Réessayer 🔄
+            </button>
+            <button id="victory-newgameplus-btn" class="btn-ui" onclick="startNewGamePlus()" hidden>
+                COMMENCER NEW GAME+ ▶
+            </button>
+            <button id="victory-share-result-btn" class="btn-ui" onclick="shareDailyChallengeResult()" hidden>
+                PARTAGER LE RÉSULTAT 🔗
+            </button>
+            <button id="victory-newgame-btn" class="btn-ui">
+                Nouvelle Partie ▶
+            </button>
+            <button id="victory-menu-btn" class="btn-ui">
+                 Menu Titre ⌂
+            </button>
+        </div>
+    </div>
+    </div>
+
+    <div id="credits-screen" class="overlay-screen hidden">
+        <div class="credits-panel">
+            <div class="credits-kicker">Fin de l'aventure</div>
+            <h1 class="credits-title">CRÉDITS</h1>
+            <p class="credits-message">
+                Merci d'avoir joué à <strong>Dungeons : The Curse of the Dungeon</strong>.<br>
+                Un jeu développé par <strong>Wiyotl</strong>.
+            </p>
+            <img class="credits-logo" src="wiyotl_logo.webp" alt="Logo Wiyotl" width="320" height="320">
+            <div class="gameover-buttons">
+                <button class="btn-ui" onclick="showVictoryScreen()">VOIR LA VICTOIRE</button>
+                <button id="credits-share-result-btn" class="btn-ui" onclick="shareDailyChallengeResult()" hidden>PARTAGER LE RÉSULTAT 🔗</button>
+                <button class="btn-ui" onclick="returnToTitle()">RETOURNER AU MENU</button>
+            </div>
+        </div>
+    </div>
+   
+    <!-- JEU PRINCIPAL (UI FIXE TOUJOURS VISIBLE) -->
+    <h1>DUNGEONS</h1>
+    <div id="ui">
+        <div class="ui-group"><span id="world-display" class="world-tag">Monde 1-1</span></div>
+        <div class="ui-group">
+            PV: 
+            <div class="bar-container"><div id="hp-bar-fill"></div></div>
+            <span id="hp-display">120 / 120</span>
+        </div>
+        <div class="ui-group">Or: <span id="gold-display" style="color: #f9d342;">0 🪙</span></div>
+        <div class="ui-group">Score: <span id="score-display">0</span></div>
+        <div class="ui-group">Cibles: <span id="enemies-display">0</span></div>
+        <div class="ui-group" id="run-timer-group" hidden>Temps: <span id="run-timer-display">02:30</span></div>
+    </div>
+
+    <!-- BOSS UI (DÉPLACÉ EN HAUT) -->
+    <div id="boss-ui-container">
+        <div class="boss-name-tag" id="boss-ui-name">Boss</div>
+        <div>
+            <div class="boss-bar-container"><div id="boss-hp-bar-fill"></div></div>
+            <span id="boss-hp-display" style="margin-left: 8px; color: #e056fd; font-weight: bold; font-size: 0.85rem;">0/0</span>
+        </div>
+    </div>
+
+    <div class="canvas-wrapper">
+        <div id="notification-banner">PORTAIL OUVERT — La porte vers le niveau suivant est accessible !</div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+    <div id="controls-info">Pause : <b>P</b> / <b>Échap</b> | Déplacement : <b>Z, Q, S, D</b> ou <b>Flèches</b> | Attaque : <b>ESPACE</b> | Interagir : <b>E</b> | Parade : <b>F</b> | Dash : <b>SHIFT</b></div>
+    <div id="fps-counter" class="fps-counter" aria-live="polite">FPS : 0</div>
+    <section id="tutorial-dialog" class="tutorial-dialog" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" aria-describedby="tutorial-copy" hidden>
+        <div class="tutorial-card">
+            <p id="tutorial-step-label" class="progression-side-kicker">ÉTAPE 1 / 4</p>
+            <h2 id="tutorial-title">Bienvenue dans le donjon</h2>
+            <p id="tutorial-copy" aria-live="polite"></p>
+            <div class="tutorial-actions">
+                <button id="tutorial-skip" class="btn-ui" type="button">FERMER</button>
+                <button id="tutorial-next" class="btn-ui" type="button">SUIVANT</button>
+            </div>
+        </div>
+    </section>
+    <div class="touch-controls" role="group" aria-label="Contrôles tactiles">
+        <div class="touch-joystick" role="application" aria-label="Joystick de déplacement">
+            <div class="touch-stick-knob"></div>
+        </div>
+        <div class="touch-action-group">
+            <button type="button" data-touch-key="space" aria-label="Attaquer">⚔<span>ATTAQUE</span></button>
+            <button type="button" data-touch-key="shift" aria-label="Effectuer un dash">✦<span>DASH</span></button>
+            <button type="button" data-touch-key="f" aria-label="Parer">⛨<span>PARADE</span></button>
+            <button type="button" data-touch-key="e" aria-label="Interagir">↗<span>AGIR</span></button>
+            <button type="button" data-touch-action="pause" aria-label="Mettre en pause">Ⅱ<span>PAUSE</span></button>
+        </div>
+    </div>
+
+    <div id="phase3-screen" class="overlay-screen hidden">
+        <div class="phase3-panel">
+            <h2 class="options-title">⚔ PROGRESSION & DÉFIS</h2>
+            <div class="phase3-hero">
+                <div class="phase3-stat"><strong id="phase3-runs">0</strong><span>Parties</span></div>
+                <div class="phase3-stat"><strong id="phase3-victories">0</strong><span>Victoires</span></div>
+                <div class="phase3-stat"><strong id="phase3-score">0</strong><span>Meilleur score</span></div>
+                <div class="phase3-stat"><strong id="phase3-kills">0</strong><span>Ennemis vaincus</span></div>
+                <div class="phase3-stat"><strong id="phase3-ngplus">0</strong><span>Cycle New Game+</span></div>
+                <div class="phase3-stat"><strong id="phase3-play-time">0 min 00 s</strong><span>Temps total joué</span></div>
+            </div>
+            <div class="phase3-grid">
+                <section class="phase3-card"><h3>Difficulté persistante</h3>
+                    <label>Mode <select id="difficulty-select" onchange="setDifficulty(this.value)">
+                        <option value="adventure">Adventure · ×1</option><option value="difficult">Difficult · ×1.25</option>
+                        <option value="nightmare">Nightmare · ×1.6</option><option value="hell">Hell · ×2.1</option>
+                    </select></label><p id="difficulty-description"></p>
+                </section>
+                <section class="phase3-card"><h3>Build du héros</h3>
+                    <label>Archétype <select id="build-select" onchange="setBuild(this.value)">
+                        <option value="vanguard">Vanguard · robustesse</option><option value="duelist">Duelist · dégâts</option>
+                        <option value="ranger">Ranger · portée</option>
+                    </select></label><div id="build-perks" class="phase3-pills"></div>
+                </section>
+                <section class="phase3-card"><h3>Modes spéciaux</h3>
+                    <div class="phase3-button-grid">
+                        <button class="btn-ui" onclick="startDailyChallenge()">DÉFI QUOTIDIEN <span>☀</span></button>
+                        <button class="btn-ui" onclick="startBossRush()">BOSS-RUSH <span>👑</span></button>
+                    </div>
+                    <p>Chaque défi du jour utilise deux modificateurs déterministes. Le même code partage la seed et les règles avec vos amis.</p>
+                    <label for="challenge-code-input">Code ou lien du défi</label>
+                    <input id="challenge-code-input" class="challenge-code-input" type="text" inputmode="text" autocomplete="off" placeholder="DNG1-AAAAMMJJ-XXXXXXXX">
+                    <div class="phase3-button-grid">
+                        <button class="btn-ui" onclick="startChallengeFromCode()">JOUER CE DÉFI <span>▶</span></button>
+                        <button class="btn-ui" onclick="copyDailyChallengeCode()">COPIER LE CODE DU JOUR <span>🔗</span></button>
+                    </div>
+                    <p id="challenge-status" aria-live="polite"></p>
+                </section>
+                <section class="phase3-card"><h3>Nouvelle ascension</h3>
+                    <p id="newgameplus-description">Terminez la campagne pour débloquer New Game+ et conserver vos améliorations.</p>
+                    <button id="phase3-newgameplus-btn" class="btn-ui" onclick="startNewGamePlus()" hidden>COMMENCER NEW GAME+ 1 ▶</button>
+                </section>
+                <section class="phase3-card"><h3>Mode sans fin · Maîtrise</h3>
+                    <p>Débloqué après la campagne. Enchaînez les 21 donjons en boucle : les ennemis gagnent des PV, des dégâts et des renforts au fil des vagues. Votre vie ne se réinitialise pas entre les salles.</p>
+                    <p id="endless-records" aria-live="polite"></p>
+                    <button id="endless-start-btn" class="btn-ui" onclick="startEndlessMode()" hidden>LANCER UNE SÉRIE SANS FIN ↻</button>
+                    <h4>Objectifs de maîtrise</h4>
+                    <div id="endless-mastery-goals" class="endless-mastery-goals" aria-live="polite"></div>
+                    <small>Une mission secondaire dédiée récompense 10 vagues nettoyées dans une même série. Nettoyer 50 vagues compte aussi comme défi spécial pour la complétion à 100 %.</small>
+                </section>
+                <section class="phase3-card"><h3>Défis optionnels</h3><div id="challenge-list"></div></section>
+                <section class="phase3-card bestiary-card">
+                    <h3>Bestiaire des profondeurs</h3>
+                    <div class="bestiary-overview" aria-live="polite">
+                        <strong id="bestiary-total">0 élimination</strong>
+                        <span id="bestiary-discovery">0 / 5 espèces rencontrées</span>
+                    </div>
+                    <div id="bestiary-list" class="bestiary-grid" aria-live="polite"></div>
+                </section>
+                <section class="phase3-card"><h3>Statistiques avancées</h3><div id="advanced-stats"></div></section>
+                <section class="phase3-card phase4-card">
+                    <h3>Phase 4 · Validation et objectifs</h3>
+                    <p>Suivez les missions de progression et vérifiez l’intégrité de votre partie avant de continuer.</p>
+                    <div id="phase4-mission-summary"></div>
+                    <div id="phase4-save-audit"></div>
+                    <div class="phase4-actions">
+                        <button class="btn-ui" onclick="openMissions()">VOIR TOUTES LES MISSIONS</button>
+                        <button class="btn-ui" onclick="runPhase4Audit(true)">VÉRIFIER LA SAUVEGARDE</button>
+                    </div>
+                </section>
+                <section class="phase3-card"><h3>Sauvegardes</h3>
+                    <label>Slot <select id="save-slot-select"><option value="0">Slot 1</option><option value="1">Slot 2</option><option value="2">Slot 3</option></select></label>
+                    <div class="phase3-button-grid">
+                        <button class="btn-ui" onclick="saveToSlot()">ENREGISTRER SLOT</button>
+                        <button class="btn-ui" onclick="loadFromSlot()">CHARGER SLOT</button>
+                        <button class="btn-ui" onclick="exportSaveJson()">EXPORTER JSON</button>
+                        <button class="btn-ui" onclick="importSaveJson()">IMPORTER JSON</button>
+                    </div>
+                    <input id="save-import-input" type="file" accept="application/json" hidden>
+                </section>
+            </div>
+            <div class="options-footer"><button class="btn-ui" style="width:100%;justify-content:center" onclick="closePhase3()">RETOURNER</button></div>
+        </div>
+    </div>
+
+<script src="js/supabase-config.js"></script>
+<script src="js/loading-screen.js"></script>
+<script src="js/game-utils.js"></script>
+<script src="js/secondary-missions.js"></script>
+<script src="js/game-core.js"></script>
+<script src="js/save-progression.js"></script>
+<script src="js/game-runtime.js"></script>
+<script src="js/cloud-save.js"></script>
+<script src="js/onboarding.js"></script>
+<script src="js/pwa.js"></script>
+
+</body>
+</html>
