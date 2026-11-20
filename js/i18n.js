@@ -858,7 +858,9 @@
         ['Skin Cyan', 'Cyan Skin'],
         ['Skin Cramoisi', 'Crimson Skin'],
         ['Skin Ombre', 'Shadow Skin'],
-        ['Or + skin exclusif', 'Gold + exclusive skin']
+        ['Or + skin exclusif', 'Gold + exclusive skin'],
+        ['vagues nettoyées', 'waves cleared'],
+        ['Récompense obtenue', 'Reward obtained']
     ].map(([source, target]) => [source, target]));
 
     const french = Object.fromEntries(Object.entries(english).map(([source, target]) => [target, source]));

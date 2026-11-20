@@ -362,7 +362,7 @@ function normalizePhase3Data(save) {
                 const completed = endlessModeState.claimedMilestones.includes(goal.wave);
                 const progress = Math.min(endlessModeState.bestClearedWave, goal.wave);
                 const reward = goal.skin ? window.t(`${goal.gold} Or + skin exclusif`) : `${goal.gold} ${window.t('Or')}`;
-                return `<div class="endless-mastery-goal${completed ? ' completed' : ''}"><strong>${completed ? '✓ ' : ''}${goal.label}</strong><span>${completed ? 'Récompense obtenue' : `${progress} / ${goal.wave} vagues nettoyées · ${reward}`}</span></div>`;
+                return `<div class="endless-mastery-goal${completed ? ' completed' : ''}"><strong>${completed ? '✓ ' : ''}${goal.label}</strong><span>${completed ? window.t('Récompense obtenue') : `${progress} / ${goal.wave} ${window.t('vagues nettoyées')} · ${reward}`}</span></div>`;
             }).join('');
         }
     }
