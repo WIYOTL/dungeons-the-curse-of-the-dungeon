@@ -21,19 +21,19 @@
     let completed = false;
 
     const gameTips = [
-        'Astuce : utilisez ZQSD ou les flèches pour vous déplacer.',
-        'Astuce : appuyez sur Espace pour attaquer.',
-        'Astuce : utilisez Maj pour effectuer un dash.',
-        'Astuce : appuyez sur P ou Échap pour mettre le jeu en pause.',
-        'Astuce : explorez le donjon pour découvrir les portes vers la suite.'
+        window.t('Astuce : utilisez ZQSD ou les flèches pour vous déplacer.'),
+        window.t('Astuce : appuyez sur Espace pour attaquer.'),
+        window.t('Astuce : utilisez Maj pour effectuer un dash.'),
+        window.t('Astuce : appuyez sur P ou Échap pour mettre le jeu en pause.'),
+        window.t('Astuce : explorez le donjon pour découvrir les portes vers la suite.')
     ];
     const mobileTips = [
-        'Astuce (mobile) : utilisez le joystick tactile à gauche pour vous déplacer.',
-        'Astuce (mobile) : touchez le bouton Attaque pour frapper les ennemis.',
-        'Astuce (mobile) : le bouton Dash vous aide à esquiver les attaques.',
-        'Astuce (mobile) : utilisez le bouton Parade pour bloquer une attaque au bon moment.',
-        'Astuce (mobile) : touchez Pause pour interrompre la partie.',
-        'Astuce (mobile) : approchez-vous des éléments et touchez Agir pour interagir.'
+        window.t('Astuce (mobile) : utilisez le joystick tactile à gauche pour vous déplacer.'),
+        window.t('Astuce (mobile) : touchez le bouton Attaque pour frapper les ennemis.'),
+        window.t('Astuce (mobile) : le bouton Dash vous aide à esquiver les attaques.'),
+        window.t('Astuce (mobile) : utilisez le bouton Parade pour bloquer une attaque au bon moment.'),
+        window.t('Astuce (mobile) : touchez Pause pour interrompre la partie.'),
+        window.t('Astuce (mobile) : approchez-vous des éléments et touchez Agir pour interagir.')
     ];
     const userAgent = navigator.userAgent || '';
     const platform = navigator.userAgentData?.platform || navigator.platform || '';
@@ -48,7 +48,7 @@
     try {
         previousTip = window.sessionStorage.getItem(previousTipKey);
     } catch (error) {
-        console.warn('La mémorisation de l’astuce précédente est indisponible :', error);
+        console.warn(window.t('La mémorisation de l’astuce précédente est indisponible :'), error);
     }
 
     const availableTips = tips.filter(tip => tip !== previousTip);
@@ -57,13 +57,13 @@
     try {
         window.sessionStorage.setItem(previousTipKey, selectedTip);
     } catch (error) {
-        console.warn('Impossible de mémoriser l’astuce de chargement :', error);
+        console.warn(window.t('Impossible de mémoriser l’astuce de chargement :'), error);
     }
 
     const setProgress = value => {
         progressFill.style.width = `${value}%`;
         progressText.textContent = `${value} %`;
-        statusText.textContent = 'Chargement...';
+        statusText.textContent = window.t('Chargement...');
         progressTrack.setAttribute('aria-valuenow', String(value));
     };
 

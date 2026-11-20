@@ -8,6 +8,7 @@ module.exports = defineConfig({
     reporter: 'list',
     use: {
         ...devices['Desktop Chrome'],
+        locale: 'fr-FR',
         baseURL: 'http://127.0.0.1:4176',
         trace: 'retain-on-failure'
     },

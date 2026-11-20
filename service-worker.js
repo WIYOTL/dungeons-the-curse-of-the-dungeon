@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dungeons-shell-v3';
+const CACHE_NAME = 'dungeons-shell-v4';
 const BASE_URL = new URL('./', self.location.href);
 const APP_ASSETS = [
     'index.html',
@@ -8,6 +8,7 @@ const APP_ASSETS = [
     'icons/dungeon-192.png',
     'icons/dungeon-512.png',
     'wiyotl_logo.webp',
+    'js/i18n.js',
     'js/supabase-config.js',
     'js/loading-screen.js',
     'js/game-utils.js',

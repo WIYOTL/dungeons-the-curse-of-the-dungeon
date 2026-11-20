@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Dungeons: The Curse of the Dungeon — Version 1.0.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>Dungeons: The Curse of the Dungeon — Version 1.1.0</title>
     <meta name="theme-color" content="#060709">
     <meta name="description" content="Explorez les donjons, relevez des défis seedés et complétez la campagne dans ce jeu d’action gratuit.">
     <link rel="manifest" href="./manifest.webmanifest">
@@ -15,7 +15,153 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
+
+        body {
+            overflow-x: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ============================================================
+           RESPONSIVE WINDOWS DESKTOP — Breakpoints & Fluid Scaling
+           ============================================================ */
+        :root {
+            /* Breakpoints globaux (utilisés partout, pas seulement mobile) */
+            --bp-xs: 380px;
+            --bp-sm: 520px;
+            --bp-md: 700px;
+            --bp-lg: 860px;
+            --bp-xl: 1000px;
+            --bp-xxl: 1100px;
+            --bp-xxxl: 1440px;   /* Laptop/desktop standard */
+            --bp-4k: 1920px;     /* Full HD / 2K */
+            --bp-ultra: 2560px;  /* 1440p / ultrawide */
+            --bp-4kp: 3840px;    /* 4K */
+
+            --touch-target: 44px;
+
+            /* Canvas base size (design resolution) */
+            --canvas-base-width: 800;
+            --canvas-base-height: 600;
+
+            /* UI base width */
+            --ui-base-width: 820px;
+
+            /* Fluid scaling factors */
+            --scale-factor: 1;
+        }
+
+        /* Detect non-touch Windows desktop (pointer: fine = mouse, hover: hover = desktop) */
+        @media (pointer: fine) and (hover: hover) and (min-width: 1024px) {
+            :root {
+                --is-windows-desktop: 1;
+            }
+            /* Hide touch controls on desktop with mouse */
+            .touch-controls { display: none !important; }
+            body.mobile-touch-enabled .touch-controls { display: none !important; }
+            #controls-info { display: block !important; }
+        }
+
+        /* Fluid canvas scaling for desktop — scales to fit viewport while maintaining aspect ratio */
+        @media (min-width: 1024px) {
+            :root {
+                /* Calculate scale factor based on viewport */
+                --scale-factor: min(
+                    calc(100vw / var(--canvas-base-width)),
+                    calc(100vh / var(--canvas-base-height))
+                );
+                --scale-factor: min(var(--scale-factor), 1.5); /* Cap at 1.5x for readability */
+            }
+
+            .canvas-wrapper {
+                width: calc(var(--canvas-base-width) * var(--scale-factor));
+                height: calc(var(--canvas-base-height) * var(--scale-factor));
+                max-width: 100vw;
+                max-height: 100vh;
+            }
+
+            canvas {
+                width: 100%;
+                height: 100%;
+            }
+
+            /* Fluid UI width */
+            #ui, #boss-ui-container {
+                width: calc(var(--ui-base-width) * var(--scale-factor));
+                max-width: calc(100vw - 40px);
+                font-size: calc(0.85rem * var(--scale-factor));
+            }
+
+            /* Scale notification banner */
+            #notification-banner {
+                font-size: calc(0.95rem * var(--scale-factor));
+                padding: calc(10px * var(--scale-factor)) calc(24px * var(--scale-factor));
+                max-width: min(90vw, calc(620px * var(--scale-factor)));
+            }
+
+            #controls-info {
+                font-size: calc(0.8rem * var(--scale-factor));
+                padding: calc(4px * var(--scale-factor)) calc(12px * var(--scale-factor));
+            }
+        }
+
+        /* Large desktop (1440px+) — allow larger scale */
+        @media (min-width: 1440px) {
+            :root {
+                --scale-factor: min(
+                    calc(100vw / var(--canvas-base-width)),
+                    calc(100vh / var(--canvas-base-height))
+                );
+                --scale-factor: min(var(--scale-factor), 2); /* Cap at 2x */
+            }
+        }
+
+        /* Full HD / 2K (1920px+) */
+        @media (min-width: 1920px) {
+            :root {
+                --scale-factor: min(
+                    calc(100vw / var(--canvas-base-width)),
+                    calc(100vh / var(--canvas-base-height))
+                );
+                --scale-factor: min(var(--scale-factor), 2.5);
+            }
+        }
+
+        /* 4K / Ultrawide (2560px+) */
+        @media (min-width: 2560px) {
+            :root {
+                --scale-factor: min(
+                    calc(100vw / var(--canvas-base-width)),
+                    calc(100vh / var(--canvas-base-height))
+                );
+                --scale-factor: min(var(--scale-factor), 3);
+            }
+        }
+
+        /* High DPI displays (Retina, 4K laptops) — compensate for devicePixelRatio */
+        @media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
+            :root {
+                --scale-factor: calc(var(--scale-factor) / var(--device-pixel-ratio, 1));
+            }
+        }
+
+        /* Landscape mobile specific adjustments */
+        @media (max-width: 860px) and (orientation: landscape) {
+            :root {
+                --scale-factor: min(
+                    calc(100vw / var(--canvas-base-width)),
+                    calc(100vh / var(--canvas-base-height))
+                );
+                --scale-factor: min(var(--scale-factor), 1);
+            }
+        }
+
+        /* ============================================================
+           END RESPONSIVE WINDOWS DESKTOP
+           ============================================================ */
+
         body.high-contrast { background-color: #000; color: #fff; }
         body.high-contrast .overlay-screen, body.high-contrast .options-card,
         body.high-contrast .phase3-card, body.high-contrast #ui {
@@ -299,6 +445,29 @@
             font-weight: 800;
             letter-spacing: .12em;
         }
+        .title-language {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 6px;
+            color: #c5c6c7;
+            font-size: .72rem;
+            letter-spacing: .04em;
+        }
+        .title-language select {
+            min-width: 116px;
+            padding: 5px 8px;
+            border: 1px solid rgba(102, 252, 241, .55);
+            border-radius: 5px;
+            background: rgba(11, 12, 16, .9);
+            color: #fff;
+            font: inherit;
+        }
+        .title-language select:focus-visible {
+            outline: 2px solid #f9d342;
+            outline-offset: 2px;
+        }
         .title-legal-note {
             color: #aeb4bd;
         }
@@ -444,6 +613,13 @@
             box-shadow: inset 0 0 0 rgba(102, 252, 241, 0), 0 5px 15px rgba(0,0,0,0.5);
             letter-spacing: 1.5px;
             overflow: hidden;
+            min-height: var(--touch-target);
+            min-width: var(--touch-target);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            white-space: normal;
         }
         .btn-ui::before {
             content: '';
@@ -749,6 +925,19 @@
         .mission-card.completed .mission-name,
         .mission-card.completed .mission-description {
             padding-left: 18px;
+        }
+        .mission-card.collector-badge {
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 12px rgba(255,215,0,.45);
+        }
+        .mission-card.collector-badge .mission-name::after {
+            content: '';
+        }
+        .mission-card.collector-badge .collector-badge-text {
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 0.85em;
+            margin-left: 8px;
         }
         .mission-empty {
             padding: 22px;
@@ -1224,6 +1413,8 @@
             gap: 6px;
             min-height: 24px;
             margin-bottom: 6px;
+            overflow-wrap: anywhere;
+            white-space: normal;
         }
 
         #player-stats-box div:last-child {
@@ -1477,16 +1668,27 @@
                 flex: 0 0 auto;
                 width: min(280px, 100%);
                 margin: 0 auto;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas:
+                    "menu"
+                    "progress"
+                    "stats"
+                    "completion";
+                gap: 10px;
             }
             #title-screen .menu-container {
+                grid-area: menu;
                 width: 100%;
             }
             #title-screen .progression-side-panel {
+                grid-area: progress;
                 position: static;
                 width: 100%;
                 margin: 14px 0 0;
             }
             #title-screen #player-stats-box {
+                grid-area: stats;
                 position: static;
                 flex: 0 0 auto;
                 width: min(280px, 100%);
@@ -1494,6 +1696,10 @@
                 margin: 18px auto 0;
                 padding: 10px 14px;
                 transform: none;
+            }
+            #title-screen .title-menu-layout > .game-completion {
+                grid-area: completion;
+                margin-top: 10px;
             }
             #title-screen .title-legal {
                 position: static;
@@ -1524,9 +1730,14 @@
             }
             #title-screen .title-menu-layout {
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) minmax(160px, .8fr);
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas:
+                    "menu"
+                    "progress"
+                    "stats"
+                    "completion";
                 align-items: start;
-                gap: 12px;
+                gap: 10px;
                 width: min(620px, 100%);
             }
             #title-screen .menu-container {
@@ -1537,17 +1748,22 @@
             #title-screen .menu-container > button {
                 min-height: 42px;
                 padding: 8px;
-                font-size: clamp(.58rem, 1.6vw, .78rem);
-                letter-spacing: .8px;
+                font-size: clamp(.55rem, 1.5vw, .75rem);
+                letter-spacing: .6px;
             }
             #title-screen .progression-side-panel {
                 margin: 0;
-                padding: 12px;
+                padding: 10px;
+                max-width: 100%;
             }
             #title-screen #player-stats-box {
-                width: min(620px, 100%);
-                margin-top: 10px;
+                width: min(320px, 100%);
+                margin-top: 8px;
                 padding: 8px 12px;
+            }
+            #title-screen .title-menu-layout > .game-completion {
+                grid-area: completion;
+                margin-top: 8px;
             }
             #title-screen .title-legal {
                 width: min(620px, 100%);
@@ -1619,13 +1835,13 @@
         .bestiary-entry-count { grid-area:count; justify-self:start; max-width:100%; padding:3px 7px; border:1px solid rgba(192,157,99,.28); border-radius:999px; color:#d5c7aa; font-size:.7rem; line-height:1.3; text-align:left; white-space:normal; overflow-wrap:anywhere; }
         .phase3-table { width:100%; border-collapse:collapse; font-size:.82rem; }
         .phase3-table td { padding:5px; border-bottom:1px solid rgba(255,255,255,.1); }
-        .touch-controls { display:none; position:fixed; inset:auto 12px 18px 12px; z-index:4500; justify-content:space-between; align-items:flex-end; pointer-events:none; }
-        .touch-controls button { pointer-events:auto; width:54px; height:54px; border-radius:50%; border:1px solid #8e6e43; background:rgba(12,10,9,.82); color:#e4c489; font-weight:bold; touch-action:none; box-shadow:0 3px 14px rgba(0,0,0,.45); }
-        .touch-joystick { position:relative; width:132px; height:132px; border:1px solid rgba(192,157,99,.55); border-radius:50%; background:radial-gradient(circle, rgba(89,68,43,.35), rgba(8,7,7,.78)); box-shadow:inset 0 0 22px rgba(0,0,0,.65), 0 3px 14px rgba(0,0,0,.4); touch-action:none; pointer-events:auto; }
+        .touch-controls { display:none; position:fixed; inset:auto max(12px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); z-index:4500; justify-content:space-between; align-items:flex-end; pointer-events:none; gap:10px; }
+        .touch-controls button { pointer-events:auto; width:var(--touch-target); height:var(--touch-target); border-radius:50%; border:1px solid #8e6e43; background:rgba(12,10,9,.82); color:#e4c489; font-weight:bold; touch-action:none; box-shadow:0 3px 14px rgba(0,0,0,.45); -webkit-tap-highlight-color:transparent; }
+        .touch-joystick { position:relative; width:clamp(100px, 18vw, 140px); height:clamp(100px, 18vw, 140px); border:1px solid rgba(192,157,99,.55); border-radius:50%; background:radial-gradient(circle, rgba(89,68,43,.35), rgba(8,7,7,.78)); box-shadow:inset 0 0 22px rgba(0,0,0,.65), 0 3px 14px rgba(0,0,0,.4); touch-action:none; pointer-events:auto; }
         .touch-joystick::before { content:""; position:absolute; inset:24%; border:1px solid rgba(192,157,99,.2); border-radius:50%; }
-        .touch-stick-knob { position:absolute; top:50%; left:50%; width:50px; height:50px; border:1px solid #c09d63; border-radius:50%; background:radial-gradient(circle at 35% 30%, #594a34, #211a13 72%); box-shadow:0 2px 9px rgba(0,0,0,.55); transform:translate(calc(-50% + var(--stick-x, 0px)), calc(-50% + var(--stick-y, 0px))); }
-        .touch-action-group { display:grid; grid-template-columns:repeat(3,54px); gap:10px; align-items:end; }
-        .touch-action-group button { display:grid; place-items:center; font-size:1.15rem; }
+        .touch-stick-knob { position:absolute; top:50%; left:50%; width:clamp(36px, 7vw, 52px); height:clamp(36px, 7vw, 52px); border:1px solid #c09d63; border-radius:50%; background:radial-gradient(circle at 35% 30%, #594a34, #211a13 72%); box-shadow:0 2px 9px rgba(0,0,0,.55); transform:translate(calc(-50% + var(--stick-x, 0px)), calc(-50% + var(--stick-y, 0px))); }
+        .touch-action-group { display:grid; grid-template-columns:repeat(3, clamp(44px, 8vw, 54px)); gap:clamp(6px, 1.5vw, 10px); align-items:end; }
+        .touch-action-group button { display:grid; place-items:center; font-size:clamp(1rem, 2vw, 1.25rem); touch-action: manipulation; -webkit-tap-highlight-color:transparent; }
         .touch-action-group button span { font-size:.52rem; line-height:1; letter-spacing:.04em; }
         .touch-controls button:active { background:rgba(105,40,30,.88); border-color:#d1a96c; }
         body.game-playing .touch-controls { display:none; }
@@ -2348,7 +2564,8 @@
             grid-template-columns: minmax(260px, 320px) minmax(220px, 264px);
             grid-template-areas:
                 "menu stats"
-                "progress stats";
+                "progress stats"
+                "completion completion";
             align-items: start;
             gap: 16px;
             width: min(600px, 52vw);
@@ -2431,6 +2648,7 @@
         }
 
         #title-screen .game-completion {
+            grid-area: completion;
             margin-bottom: 12px;
             padding: 11px 12px;
             border: 1px solid rgba(184, 154, 90, .32);
@@ -2471,6 +2689,29 @@
             transition: width .25s ease;
         }
 
+        #title-screen .game-completion-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, var(--df-gold), var(--df-gold-light));
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(184, 154, 90, .6), inset 0 -2px 4px rgba(0,0,0,.3);
+            animation: df-badge-pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes df-badge-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 12px rgba(184, 154, 90, .6); }
+            50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(184, 154, 90, .9); }
+        }
+
+        #title-screen .game-completion-badge.hidden {
+            display: none;
+        }
+
         #title-screen .progression-side-panel .progression-menu-button {
             min-height: 46px;
         }
@@ -2486,8 +2727,10 @@
             align-self: end;
             width: 100%;
             max-width: 100%;
-            max-height: none;
-            transform: none;
+        }
+
+        #title-screen .title-menu-layout > .game-completion {
+            grid-area: completion;
         }
 
         #title-screen .title-edition {
@@ -2500,14 +2743,6 @@
             border-radius: 3px;
             background: linear-gradient(145deg, rgba(30, 24, 22, .9), rgba(10, 9, 9, .88));
             box-shadow: 0 12px 32px rgba(0, 0, 0, .38);
-        }
-
-        #title-screen > .game-completion {
-            position: absolute;
-            right: max(24px, env(safe-area-inset-right));
-            bottom: calc(max(18px, env(safe-area-inset-bottom)) + 82px);
-            width: min(340px, calc(100vw - 24px));
-            margin: 0;
         }
 
         #title-screen #player-stats-box {
@@ -2568,7 +2803,7 @@
                 padding-bottom: max(24px, env(safe-area-inset-bottom));
             }
 
-            #title-screen > .game-completion {
+            #title-screen .title-menu-layout > .game-completion {
                 position: static;
                 flex: 0 0 auto;
                 width: min(420px, 100%);
@@ -2733,7 +2968,7 @@
                 transform: none;
             }
 
-            #title-screen > .game-completion {
+            #title-screen .title-menu-layout > .game-completion {
                 position: relative;
                 right: auto;
                 bottom: auto;
@@ -2828,17 +3063,10 @@
             body.game-playing.mobile-touch-enabled .touch-controls {
                 inset-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
             }
-
-            .touch-joystick { width:116px; height:116px; }
-            .touch-stick-knob { width:46px; height:46px; }
-            .touch-action-group { grid-template-columns:repeat(3,48px); gap:7px; }
-            .touch-controls button { width:48px; height:48px; }
+        }
         }
 
         @media (max-height: 520px) {
-            body.game-playing.mobile-touch-enabled .touch-joystick { width:98px; height:98px; }
-            body.game-playing.mobile-touch-enabled .touch-stick-knob { width:40px; height:40px; }
-            body.game-playing.mobile-touch-enabled .touch-controls { min-height:98px; }
             body.game-playing.mobile-touch-enabled #gameCanvas { max-height:calc(100dvh - 154px); }
             body.game-playing.mobile-touch-enabled .canvas-wrapper {
                 width:min(100%, 800px, calc((100dvh - 154px) * 4 / 3));
@@ -2852,13 +3080,15 @@
                 grid-template-areas:
                     "menu"
                     "progress"
-                    "stats";
+                    "stats"
+                    "completion";
                 gap: 12px;
             }
 
-            #title-screen .title-menu-layout > .menu-container { grid-area: menu; }
-            #title-screen .title-menu-layout > .progression-side-panel { grid-area: progress; }
-            #title-screen .title-menu-layout > #player-stats-box { grid-area: stats; }
+            #title-screen .title-menu-layout > .menu-container { grid-area: menu; min-width: 0; }
+            #title-screen .title-menu-layout > .progression-side-panel { grid-area: progress; min-width: 0; }
+            #title-screen .title-menu-layout > #player-stats-box { grid-area: stats; min-width: 0; }
+            #title-screen .title-menu-layout > .game-completion { grid-area: completion; min-width: 0; }
 
             .overlay-screen:not(#title-screen) {
                 height: 100dvh;
@@ -2912,21 +3142,83 @@
         }
 
         @media (max-width: 860px) and (orientation: landscape) {
+            #title-screen {
+                padding: max(8px, env(safe-area-inset-top)) 14px max(8px, env(safe-area-inset-bottom));
+            }
+            #title-screen .title-hero-wrapper {
+                margin-bottom: 12px;
+            }
+            #title-screen .title-hero {
+                font-size: clamp(1.55rem, 5vw, 2.4rem);
+                letter-spacing: clamp(2px, .8vw, 5px);
+            }
+            #title-screen .title-subtitle {
+                margin-top: 4px;
+                font-size: .62rem;
+                letter-spacing: 2px;
+            }
             #title-screen .title-menu-layout {
-                grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr);
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
                 grid-template-areas:
-                    "menu progress"
-                    "stats stats";
+                    "menu"
+                    "progress"
+                    "stats"
+                    "completion";
+                align-items: start;
+                gap: 10px;
                 width: min(620px, 100%);
             }
-
-            #title-screen .title-menu-layout > .progression-side-panel {
-                margin: 0;
+            #title-screen .menu-container {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
             }
-
-            #title-screen .title-menu-layout > #player-stats-box {
-                width: 100%;
-                margin-top: 0;
+            #title-screen .menu-container > button {
+                min-height: 42px;
+                padding: 8px;
+                font-size: clamp(.55rem, 1.5vw, .75rem);
+                letter-spacing: .6px;
+            }
+            #title-screen .progression-side-panel {
+                margin: 0;
+                padding: 10px;
+                max-width: 100%;
+            }
+            #title-screen #player-stats-box {
+                width: min(320px, 100%);
+                margin-top: 8px;
+                padding: 8px 12px;
+            }
+            #title-screen .title-menu-layout > .game-completion {
+                grid-area: completion;
+                margin-top: 8px;
+            }
+            #title-screen .title-legal {
+                width: min(620px, 100%);
+                margin-top: 10px;
+                padding: 8px 10px;
+            }
+            body.game-playing > h1 {
+                display: none;
+            }
+            body.game-playing #ui {
+                margin-bottom: 4px;
+                padding: 5px 8px;
+                font-size: .74rem;
+            }
+            body.game-playing .canvas-wrapper {
+                overflow: hidden;
+            }
+            body.game-playing .touch-controls {
+                inset: auto max(12px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom))
+                    max(12px, env(safe-area-inset-left));
+            }
+            body.game-playing #gameCanvas {
+                width: auto;
+                max-width: calc(100vw - 24px);
+                max-height: calc(100dvh - 130px);
+                margin-inline: auto;
             }
         }
 
@@ -3004,7 +3296,7 @@
                 transform: none;
             }
 
-            #title-screen > .game-completion,
+            #title-screen .title-menu-layout > .game-completion,
             #title-screen > .title-legal {
                 position: static;
                 width: min(700px, 100%);
@@ -3139,7 +3431,7 @@
             }
 
             #title-screen .title-menu-layout,
-            #title-screen > .game-completion,
+            #title-screen .title-menu-layout > .game-completion,
             #title-screen > .title-legal {
                 width: 100%;
             }
@@ -3196,21 +3488,6 @@
             body.game-playing.mobile-touch-enabled .touch-controls {
                 inset-inline: max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-right));
             }
-
-            body.game-playing.mobile-touch-enabled .touch-joystick {
-                width: 100px;
-                height: 100px;
-            }
-
-            body.game-playing.mobile-touch-enabled .touch-action-group {
-                grid-template-columns: repeat(3, 44px);
-                gap: 5px;
-            }
-
-            body.game-playing.mobile-touch-enabled .touch-controls button {
-                width: 44px;
-                height: 44px;
-            }
         }
 
         @media (max-width: 860px) and (max-height: 520px) {
@@ -3226,28 +3503,8 @@
                 padding-bottom: 68px;
             }
 
-            body.game-playing.mobile-touch-enabled .touch-joystick {
-                width: 84px;
-                height: 84px;
-            }
-
-            body.game-playing.mobile-touch-enabled .touch-stick-knob {
-                width: 38px;
-                height: 38px;
-            }
-
             body.game-playing.mobile-touch-enabled .touch-controls {
                 inset-block-end: max(6px, env(safe-area-inset-bottom));
-            }
-
-            body.game-playing.mobile-touch-enabled .touch-action-group {
-                grid-template-columns: repeat(3, 44px);
-                gap: 5px;
-            }
-
-            body.game-playing.mobile-touch-enabled .touch-controls button {
-                width: 44px;
-                height: 44px;
             }
         }
 
@@ -3295,6 +3552,35 @@
 
             body.game-playing.mobile-touch-enabled #gameCanvas {
                 max-height: calc(100dvh - 180px);
+            }
+        }
+
+        @media (max-width: 860px) and (orientation: landscape) and (max-height: 520px) {
+            body.game-playing.mobile-touch-enabled .canvas-wrapper {
+                width: min(100%, 600px, calc((100dvh - 150px) * 4 / 3));
+            }
+
+            body.game-playing.mobile-touch-enabled #gameCanvas {
+                max-height: calc(100dvh - 150px);
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-controls {
+                inset: auto max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+                    max(8px, env(safe-area-inset-left));
+                align-items: center;
+                flex-direction: row;
+                gap: 6px;
+                min-height: auto;
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-joystick {
+                width: clamp(80px, 15vh, 110px);
+                height: clamp(80px, 15vh, 110px);
+            }
+
+            body.game-playing.mobile-touch-enabled .touch-action-group {
+                grid-template-columns: repeat(3, clamp(40px, 6vh, 50px));
+                gap: clamp(4px, 1vh, 6px);
             }
         }
 
@@ -3446,11 +3732,11 @@
             <div>🏃 <span id="menu-speed"></span></div>
             <div>🪙 <span id="menu-gold"></span></div>
         </aside>
-        </div>
         <section class="game-completion" aria-label="Avancement global du jeu">
             <div class="game-completion-heading">
                 <span>Complétion du jeu</span>
                 <strong id="game-completion-percent">0%</strong>
+                <span id="game-completion-badge" class="game-completion-badge hidden" aria-label="Complétion à 100% atteinte">🏆</span>
             </div>
             <div
                 id="game-completion-track"
@@ -3463,8 +3749,16 @@
                 <div id="game-completion-fill" class="game-completion-fill"></div>
             </div>
         </section>
+        </div>
         <footer class="title-legal">
-            <div class="title-edition"><span>WEB EDITION</span><span>VER. 1.0.0</span></div>
+            <label class="title-language" for="language-select-title">
+                <span>Langue</span>
+                <select id="language-select-title" data-language-select aria-label="Sélectionner la langue">
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                </select>
+            </label>
+            <div class="title-edition"><span>WEB EDITION</span><span>VER. 1.1.0</span></div>
             <div class="title-legal-note">Wiyotl est une marque déposée.<br>Tous droits réservés.</div>
             <nav class="title-legal-links" aria-label="Informations et assistance">
                 <a href="./privacy.html">Confidentialité</a>
@@ -3490,6 +3784,16 @@
         <div class="options-panel">
             <h2 class="options-title">⚙️ OPTIONS</h2>
             <div class="options-grid">
+                <section class="options-card">
+                    <h3>🌐 LANGUE</h3>
+                    <div class="options-row">
+                        <label for="language-select-options">Langue</label>
+                        <select id="language-select-options" data-language-select aria-label="Sélectionner la langue">
+                            <option value="fr">Français</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                </section>
                 <section class="options-card">
                     <h3>🔊 AUDIO</h3>
                     <div class="options-row">
@@ -3579,7 +3883,7 @@
                 <section class="options-card">
                     <h3>📊 INFORMATIONS</h3>
                     <div class="options-info">
-                        <div>Dungeons : The Curse of The Dungeon <span>Version 1.0.0</span></div>
+                        <div>Dungeons : The Curse of The Dungeon <span>Version 1.1.0</span></div>
                         <div>Développeur <span>Wiyotl</span></div>
                         <div>Mondes <span>3</span></div>
                         <div>Niveaux <span>21</span></div>
@@ -3675,6 +3979,7 @@
                 <div class="shop-item-grid">
                     <div class="shop-item-card"><div class="shop-item-icon">🎯</div><div class="shop-item-content"><strong>Précision</strong><small>22% de coups critiques · 450 🪙</small></div><button class="btn-ui" data-product-id="ability-precision" data-price="450" onclick="buyShopPower('ability-precision',450,'abilities','precision','Précision activée !')">ACHETER</button></div>
                     <div class="shop-item-card"><div class="shop-item-icon">🔥</div><div class="shop-item-content"><strong>Flamme ardente</strong><small>Les attaques appliquent Brûlure · 500 🪙</small></div><button class="btn-ui" data-product-id="ability-ember" data-price="500" onclick="buyShopPower('ability-ember',500,'abilities','ember','Flamme ardente activée !')">ACHETER</button></div>
+<div class="shop-item-card"><div class="shop-item-icon">🧛</div><div class="shop-item-content"><strong>Vampirisme</strong><small>Soins sur coup critique · 550 🪙</small></div><button class="btn-ui" data-product-id="ability-vampirism" data-price="550" onclick="buyShopPower('ability-vampirism',550,'abilities','vampirism','Vampirisme activé !')">ACHETER</button></div>
                     <div class="shop-item-card"><div class="shop-item-icon">❄️</div><div class="shop-item-content"><strong>Relique de givre</strong><small>Les attaques ralentissent les ennemis · 550 🪙</small></div><button class="btn-ui" data-product-id="relic-frost" data-price="550" onclick="buyShopPower('relic-frost',550,'relics','frost','Relique de givre activée !')">ACHETER</button></div>
                     <div class="shop-item-card"><div class="shop-item-icon">🧿</div><div class="shop-item-content"><strong>Égide protectrice</strong><small>Réduit les dégâts des pièges · 600 🪙</small></div><button class="btn-ui" data-product-id="relic-ward" data-price="600" onclick="buyShopPower('relic-ward',600,'relics','ward','Égide protectrice activée !')">ACHETER</button></div>
                     <div class="shop-item-card"><div class="shop-item-icon">🩸</div><div class="shop-item-content"><strong>Relique sanguinaire</strong><small>Récupérez 4% des dégâts infligés en PV · 700 🪙</small></div><button class="btn-ui" data-product-id="relic-leech" data-price="700" onclick="buyShopPower('relic-leech',700,'relics','leech','Relique sanguinaire activée !')">ACHETER</button></div>
@@ -3822,7 +4127,7 @@
                 VICTOIRE !
             </h1>
             <div class="victory-subtitle">
-                Vous avez vaincu tous les boss et la malédiction du donjon est levée !
+                Vous avez vaincu tous les boss et la malédiction du donjon est levée !<br>
                 Félicitations pour votre triomphe !
             </div>
             <div class="gameover-stats">
@@ -3958,8 +4263,7 @@
                 </section>
                 <section class="phase3-card"><h3>Build du héros</h3>
                     <label>Archétype <select id="build-select" onchange="setBuild(this.value)">
-                        <option value="vanguard">Vanguard · robustesse</option><option value="duelist">Duelist · dégâts</option>
-                        <option value="ranger">Ranger · portée</option>
+                        <option value="vanguard">Vanguard · robustesse</option><option value="duelist">Duelist · dégâts</option><option value="ranger">Ranger · portée</option><option value="paladin">Paladin · bouclier</option>
                     </select></label><div id="build-perks" class="phase3-pills"></div>
                 </section>
                 <section class="phase3-card"><h3>Modes spéciaux</h3>
@@ -4023,6 +4327,7 @@
         </div>
     </div>
 
+<script src="js/i18n.js"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/loading-screen.js"></script>
 <script src="js/game-utils.js"></script>

@@ -6,10 +6,11 @@ let notificationInProgress = false;
 
 const WORLD_WIDTH = 1400;
 const WORLD_HEIGHT = 1000;
-const BASE_PLAYER_HP = 100;
+const BASE_PLAYER_HP = 120;
 const MAX_PLAYER_HP = 300;
 const MAX_PLAYER_DEFENSE = 0.75;
 const MAX_PLAYER_ATTACK_DAMAGE = 100;
+const MAX_PLAYER_SPEED = 8;
 const SAVE_VERSION = 12;
 const SAVE_DEBOUNCE_MS = 400;
 const BESTIARY_DEFINITIONS = {
@@ -31,9 +32,10 @@ const DIFFICULTY_MODES = {
     hell: { label: 'Hell', multiplier: 2.1, description: 'Aucune erreur ne sera pardonnée.' }
 };
 const BUILD_DEFINITIONS = {
-    vanguard: { label: 'Vanguard', perks: ['+20% PV max', '+10% défense'], hp: 1.2, defense: .1, damage: .95, speed: .95, dashSpeed: 1 },
+    vanguard: { label: 'Vanguard', perks: ['+10% défense'], hp: 1, defense: .1, damage: .95, speed: .95, dashSpeed: 1 },
     duelist: { label: 'Duelist', perks: ['+18% dégâts', 'dash plus rapide'], hp: .95, defense: 0, damage: 1.18, speed: 1.08, dashSpeed: 1.2 },
-    ranger: { label: 'Ranger', perks: ['+25% portée', '+8% vitesse'], hp: .95, defense: 0, damage: 1.05, speed: 1.08, dashSpeed: 1 }
+    ranger: { label: 'Ranger', perks: ['+25% portée', '+8% vitesse'], hp: .95, defense: 0, damage: 1.05, speed: 1.08, dashSpeed: 1 },
+    paladin: { label: 'Paladin', perks: ['Bouclier absorbant', 'Soin par parade'], hp: 1.05, defense: 0.05, damage: 1.0, speed: 1.0, dashSpeed: 0.9 }
 };
 const SPEED_RUN_LIMIT_SECONDS = 150;
 
@@ -75,7 +77,7 @@ function buildEasyLevelsForWorld1() {
         goldDrop: 60,
         isBoss: true,
         bossType: 0,
-        bossName: "Gardien de l'Aube"
+        bossName: window.t("Gardien de l'Aube")
     });
     return levels;
 }
@@ -142,11 +144,11 @@ function showVictoryScreen() {
     const retryButton = document.getElementById('victory-retry-btn');
     const newGamePlusButton = document.getElementById('victory-newgameplus-btn');
     const shareResultButton = document.getElementById('victory-share-result-btn');
-    if (victoryTitle) victoryTitle.textContent = bossRushVictory ? 'BOSS-RUSH TERMINÉ !' : 'VICTOIRE !';
+    if (victoryTitle) victoryTitle.textContent = bossRushVictory ? window.t('BOSS-RUSH TERMINÉ !') : window.t('VICTOIRE !');
     if (victorySubtitle) {
         victorySubtitle.textContent = bossRushVictory
-            ? 'Vous avez vaincu les trois boss à la suite et gagné 3 000 Or !'
-            : `Vous avez vaincu tous les boss et la malédiction du donjon est levée ! New Game+ ${newGamePlusUnlocked ? 'est débloqué' : 'sera débloqué'}${newGamePlusLevel ? ` · cycle ${newGamePlusLevel}` : ''}.`;
+            ? window.t('Vous avez vaincu les trois boss à la suite et gagné 3 000 Or !')
+            : window.t('Vous avez vaincu tous les boss et la malédiction du donjon est levée !') + ' New Game+ ' + window.t(newGamePlusUnlocked ? 'est débloqué' : 'sera débloqué') + (newGamePlusLevel ? ` · ${window.t('cycle')} ${newGamePlusLevel}` : '') + '.';
     }
     if (retryButton) {
         retryButton.hidden = bossRushVictory;
@@ -178,7 +180,7 @@ function showVictoryScreen() {
 
 function startNewGamePlus() {
     if (!newGamePlusUnlocked || newGamePlusLevel >= Number.MAX_SAFE_INTEGER) {
-        showNotification('New Game+ n’est pas disponible.');
+        showNotification(window.t('New Game+ n’est pas disponible.'));
         return false;
     }
 
@@ -190,7 +192,7 @@ function startNewGamePlus() {
 
     if (!loadLevel(0, 0)) {
         newGamePlusLevel = previousLevel;
-        showNotification('Impossible de démarrer New Game+ : le premier niveau ne peut pas être chargé.');
+        showNotification(window.t('Impossible de démarrer New Game+ : le premier niveau ne peut pas être chargé.'));
         return false;
     }
 
@@ -202,7 +204,7 @@ function startNewGamePlus() {
     enterPlayingState();
     saveGame(true);
     renderPhase3();
-    showNotification(`New Game+ ${newGamePlusLevel} lancé : ennemis plus résistants et plus puissants.`, 4500);
+    showNotification(window.t('New Game+ ') + newGamePlusLevel + window.t(' lancé : ennemis plus résistants et plus puissants.'), 4500);
     return true;
 }
 
@@ -221,20 +223,19 @@ const worldsData = [
         levels: buildEasyLevelsForWorld1()
     },
     {
-        name: "Monde 2 : La Crypte d'Obsidienne",
+        name: 'Monde 2 : La Crypte d\'Obsidienne',
         theme: generateWorldTheme('#100e16', '#1a1524', 'rgba(155,89,182,0.03)', '#221b30', '#9b59b6'),
-        levels: buildLevelsForWorld(6, 1.1, 100, 1.0, 25, 1, "Seigneur d'Obsidienne")
+        levels: buildLevelsForWorld(6, 1.1, 100, 1.0, 25, 1, window.t("Seigneur d'Obsidienne"))
     },
     {
-        name: "Monde 3 : Le Trône du Néant",
+        name: 'Monde 3 : Le Trône du Néant',
         theme: generateWorldTheme('#0b0a14', '#141224', 'rgba(224,86,253,0.03)', '#1d1933', '#e056fd'),
-        levels: buildLevelsForWorld(8, 1.45, 170, 1.4, 55, 2, "Avatar du Néant")
+        levels: buildLevelsForWorld(8, 1.45, 170, 1.4, 55, 2, window.t("Avatar du Néant"))
     }
 ];
 
 let gameState = 'TITLE';
 let hasSavedProgress = false;
-let saveWritesAuthorized = false;
 let maxUnlockedWorld = 0;
 let maxUnlockedLevel = 0;
 
@@ -257,7 +258,7 @@ let player = {
     maxHp: BASE_PLAYER_HP,
     gold: 0,
     skin: 'default',
-    defense: 0,
+    defense: 0.1,
     ownedSkins: ['default'],
     attackRange: 60,
     attackArc: Math.PI / 1.4,
@@ -322,6 +323,11 @@ let claimedMissionRewards = [];
 let saveWasMigrated = false;
 let difficultyMode = 'adventure';
 let selectedBuild = 'vanguard';
+let completedBuilds = [];
+let completedDifficulties = [];
+let buildMaxedStats = {};
+let leversActivated = 0;
+let completion100Notified = false;
 let challengeState = {};
 let phase3Stats = { runs: 0, victories: 0, deaths: 0, damageDealt: 0, damageTaken: 0, bestScore: 0, dailyWins: 0, bossRushWins: 0, playSeconds: 0 };
 let playTimeRemainder = 0;
@@ -344,6 +350,19 @@ let newGamePlusUnlocked = false;
 let newGamePlusRunActive = false;
 let levelGenerationRandom = null;
 
+const LEGACY_DAILY_MODIFIER_IDS = Object.freeze({
+    'Ennemis blindés · +25% PV ennemis': 'armored',
+    'Ennemis élites · +15% vitesse et dégâts': 'elite',
+    'Donjon frénétique · +18% vitesse ennemie': 'swift',
+    'Fureur du Néant · +20% dégâts ennemis': 'fury',
+    'Soins réduits · potions restaurent 22 PV': 'scarce-healing',
+    'ennemis blindés': 'armored',
+    'ennemis élites': 'elite',
+    'donjon frénétique': 'swift',
+    'fureur du néant': 'fury',
+    'soins réduits': 'scarce-healing'
+});
+
 function getCurrentDailyChallengeModifiers() {
     if (!dailyChallenge || activeChallenge !== 'daily') return [];
     const validIds = new Set(DAILY_CHALLENGE_MODIFIERS.map(modifier => modifier.id));
@@ -351,10 +370,11 @@ function getCurrentDailyChallengeModifiers() {
         ? dailyChallenge.modifiers.filter(id => validIds.has(id))
         : [];
     if (stored.length === 2) return stored;
-    if (Array.isArray(dailyChallenge.modifiers)
-        && dailyChallenge.modifiers.includes('ennemis élites')
-        && dailyChallenge.modifiers.includes('soins réduits')) {
-        return ['armored', 'elite', 'scarce-healing'];
+    if (Array.isArray(dailyChallenge.modifiers)) {
+        const legacyIds = [...new Set(dailyChallenge.modifiers
+            .map(modifier => LEGACY_DAILY_MODIFIER_IDS[modifier])
+            .filter(Boolean))];
+        if (legacyIds.length >= 2) return legacyIds.slice(0, 2);
     }
     return getDailyChallengeModifierIds(dailyChallenge.seed);
 }
@@ -542,11 +562,15 @@ function stopAllAudioNodes() {
 }
 
 const GAME_COMPLETION_WEIGHTS = Object.freeze({
-    levels: 40,
-    missions: 40,
-    secretRooms: 10,
-    bestiary: 5,
-    specialChallenges: 5
+    levels: 25,
+    missions: 30,
+    secretRooms: 8,
+    bestiary: 4,
+    specialChallenges: 4,
+    builds: 5,
+    difficulties: 8,
+    maxedStats: 13,
+    levers: 3
 });
 const OPTIONAL_CHALLENGE_IDS = Object.freeze(['no-potion', 'speed-run', 'glass-cannon']);
 const SPECIAL_CHALLENGE_COUNT = 3 + OPTIONAL_CHALLENGE_IDS.length;
@@ -656,6 +680,19 @@ function normalizeMissionTracking(source) {
         }
         return result;
     }, {});
+    // Réconciliation : marquer comme acheté un produit déjà possédé mais oublié
+    // dans purchasedProducts (ex. artefact obtenu par un choix de niveau avant la
+    // correction V1.1.0), afin que la mission "Le collectionneur" compte justement.
+    for (const id of COLLECTIBLE_PRODUCT_IDS) {
+        if (purchasedProducts[id]) continue;
+        if (id.startsWith('ability-') && Array.isArray(data.abilities) && data.abilities.includes(id.slice(8))) {
+            purchasedProducts[id] = true;
+        } else if (id.startsWith('relic-') && Array.isArray(data.relics) && data.relics.includes(id.slice(6))) {
+            purchasedProducts[id] = true;
+        } else if (id.startsWith('skin-') && Array.isArray(data.ownedSkins) && data.ownedSkins.includes(id.slice(5))) {
+            purchasedProducts[id] = true;
+        }
+    }
     const rawWorldSkins = data.worldCompletionSkins && typeof data.worldCompletionSkins === 'object'
         ? data.worldCompletionSkins : {};
     const validLevelIds = worldsData.flatMap(world => world.levels.map(level => level.id));
@@ -797,7 +834,7 @@ function renderMissionsScreen() {
     const countLabel = document.getElementById('missions-completed-count');
     if (progressBar) progressBar.style.width = `${percent}%`;
     if (percentLabel) percentLabel.textContent = `${percent}%`;
-    if (countLabel) countLabel.textContent = `${completed} / ${total} missions terminées`;
+    if (countLabel) countLabel.textContent = `${completed} / ${total} ${window.t('missions terminées')}`;
     const active = total - completed;
     const completedTotal = document.getElementById('missions-completed-total');
     const activeTotal = document.getElementById('missions-active-total');
@@ -808,11 +845,12 @@ function renderMissionsScreen() {
 
     const sections = [];
     secondaryMissionDefinitions.forEach(mission => {
-        if (!sections.includes(mission.section)) sections.push(mission.section);
+        const translatedSection = window.t(mission.section);
+        if (!sections.includes(translatedSection)) sections.push(translatedSection);
     });
     container.innerHTML = sections.map(section => {
         const missions = secondaryMissionDefinitions.filter(mission => {
-            if (mission.section !== section) return false;
+            if (window.t(mission.section) !== section) return false;
             const isCompleted = Boolean(secondaryMissionProgress[mission.id] && secondaryMissionProgress[mission.id].completed);
             return missionFilter === 'all'
                 || (missionFilter === 'completed' && isCompleted)
@@ -830,14 +868,16 @@ function renderMissionsScreen() {
                 const target = Math.max(1, mission.target);
                 const current = Math.min(target, Math.max(0, state.current));
                 const missionPercent = Math.round((current / target) * 100);
-                const unit = mission.unit || 'objectifs';
+                const unit = window.t(mission.unit || 'objectifs');
                 const reward = SECONDARY_MISSION_REWARDS[mission.id];
-                return `<article class="mission-card${state.completed ? ' completed' : ''}">
-                    <div class="mission-name">${mission.name}</div>
-                    <div class="mission-status">${state.completed ? '✓ TERMINÉE' : `${current} / ${target} ${unit}`}</div>
-                    <div class="mission-description">${mission.description}</div>
+                const badgeClass = mission.id === 'collector' && state.completed ? ' collector-badge' : '';
+                const badgeText = mission.id === 'collector' && state.completed ? `<span class="collector-badge-text">${window.t('★ COLLECTEUR COMPLET')}</span>` : '';
+                return `<article class="mission-card${state.completed ? ' completed' : ''}${badgeClass}">
+                    <div class="mission-name">${window.t(mission.name)}${badgeText}</div>
+                    <div class="mission-status">${state.completed ? window.t('✓ TERMINÉE') : `${current} / ${target} ${unit}`}</div>
+                    <div class="mission-description">${window.t(mission.description)}</div>
                     <div class="mission-progress-track"><div class="mission-progress-fill" style="width:${missionPercent}%"></div></div>
-                    <div class="mission-reward">${reward ? `Récompense : ${reward.label}` : 'Récompense à découvrir'}</div>
+                    <div class="mission-reward">${reward ? window.t('Récompense : ') + window.t(reward.label) : window.t('Récompense à découvrir')}</div>
                 </article>`;
             }).join('')}
         </section>`;
@@ -849,7 +889,7 @@ function renderMissionsScreen() {
             || (missionFilter === 'active' && !isCompleted);
     }).length;
     if (!visibleCount) {
-        container.innerHTML = '<div class="mission-empty">Aucune mission ne correspond à ce filtre.</div>';
+        container.innerHTML = `<div class="mission-empty">${window.t('Aucune mission ne correspond à ce filtre.')}</div>`;
     }
     const filterCount = document.getElementById('missions-filter-count');
     if (filterCount) filterCount.textContent = `${visibleCount} mission${visibleCount > 1 ? 's' : ''} affichée${visibleCount > 1 ? 's' : ''}`;
@@ -878,11 +918,13 @@ function completeMission(mission, state) {
     const reward = SECONDARY_MISSION_REWARDS[mission.id];
     grantMissionReward(mission.id);
     const duration = mission.id === 'adventure-starts' ? 6000 : 4500;
-    showNotification(
-        `🏆 Mission secondaire terminée ! ${mission.name}${reward ? ` · ${reward.label}` : ''}`,
-        duration
-    );
+    const labelParts = [window.t('🏆 Mission secondaire terminée !'), window.t(mission.name)];
+    if (reward) {
+        labelParts.push(window.t(' · '), window.t(reward.label));
+    }
+    showNotification(labelParts.join(''), duration);
     updateMenuStats();
+    updateSecondaryMissionMilestones();
     return true;
 }
 
@@ -1004,10 +1046,34 @@ function recordDefeatedBoss(worldIndex) {
     const bossId = `world-${worldIndex + 1}-boss`;
     if (!defeatedBossIds.includes(bossId)) defeatedBossIds.push(bossId);
     updateMissionProgress('finished', defeatedBosses.length, 'set');
+    if (defeatedBosses.length === worldsData.length) {
+        if (!completedBuilds.includes(selectedBuild)) {
+            completedBuilds.push(selectedBuild);
+        }
+        if (!completedDifficulties.includes(difficultyMode)) {
+            completedDifficulties.push(difficultyMode);
+        }
+        updateGameCompletionDisplay();
+    }
     return true;
 }
 
 function updateCollectionMissions() {
+    // Réconciliation : marquer comme acheté tout produit déjà possédé mais
+    // absent de purchasedProducts, afin que "Le collectionneur" se mette à jour
+    // sans nécessiter de rafraîchissement de page.
+    for (const id of COLLECTIBLE_PRODUCT_IDS) {
+        if (purchasedProducts[id]) continue;
+        let owned = false;
+        if (id.startsWith('ability-')) owned = Array.isArray(player.abilities) && player.abilities.includes(id.slice(8));
+        else if (id.startsWith('relic-')) owned = Array.isArray(player.relics) && player.relics.includes(id.slice(6));
+        else if (id.startsWith('skin-')) owned = Array.isArray(player.ownedSkins) && player.ownedSkins.includes(id.slice(5));
+        else if (id === 'health-upgrade') owned = Number.isFinite(player._shopHealthBonus) && player._shopHealthBonus > 0;
+        else if (id === 'speed-upgrade') owned = Number.isFinite(player._shopSpeedBonus) && player._shopSpeedBonus > 0;
+        else if (id === 'attack-upgrade') owned = Number.isFinite(player._shopDamageBonus) && player._shopDamageBonus > 0;
+        else if (id === 'defense-upgrade') owned = Number.isFinite(player._shopDefenseBonus) && player._shopDefenseBonus > 0;
+        if (owned) purchasedProducts[id] = true;
+    }
     const skins = Math.max(0, player.ownedSkins.length - 1);
     updateMissionProgress('different-skins', skins, 'set');
     const purchasedCount = COLLECTIBLE_PRODUCT_IDS.filter(id => purchasedProducts[id] === true).length;
@@ -1063,7 +1129,7 @@ function discoverSecretRoom(room) {
     updateMissionProgress('world-secrets', discoveredSecretRooms.length, 'set');
     updateGameCompletionDisplay();
     playCue('secret');
-    showNotification('🔎 Entrée secrète trouvée ! Appuyez sur E près du coffre ou de l’autel.', 4500);
+    showNotification(window.t('🔎 Entrée secrète trouvée ! Appuyez sur E près du coffre ou de l’autel.'), 4500);
     saveGame(true);
 }
 
@@ -1093,7 +1159,7 @@ function claimSecretRoomReward(room) {
     updateCollectionMissions();
     playCue('reward');
     saveGame(true);
-    showNotification(`🔎 Récompense secrète ! ${rewardText}`, 5000);
+    showNotification(window.t('🔎 Récompense secrète ! ') + window.t(rewardText), 5000);
 }
 
 function updateSecretRoomDiscovery() {
@@ -1299,17 +1365,18 @@ function showBossRewardScreen(reward) {
     const boss = document.getElementById('boss-reward-boss');
     const items = document.getElementById('boss-reward-items');
     const missions = document.getElementById('boss-reward-missions');
-    if (boss) boss.textContent = reward.bossName;
+    if (boss) boss.textContent = window.t(reward.bossName);
     if (items) {
-        items.innerHTML = `<div class="boss-reward-item">🪙 +${reward.gold} Or</div>` +
-            (reward.skin ? `<div class="boss-reward-item">${reward.skinLabel}</div>` : '');
+        const goldItem = `<div class="boss-reward-item">🪙 +${reward.gold} ${window.t('Or')}</div>`;
+        const skinItem = reward.skin ? `<div class="boss-reward-item">${window.t(reward.skinLabel)}</div>` : '';
+        items.innerHTML = goldItem + skinItem;
     }
     if (missions) {
         missions.innerHTML = reward.missionsCompleted.length
             ? reward.missionsCompleted.map(mission =>
-                `<div class="boss-mission-item">🏆 ${mission.name}<small>${mission.description}</small></div>`
+                `<div class="boss-mission-item">🏆 ${window.t(mission.name)}<small>${window.t(mission.description)}</small></div>`
             ).join('')
-            : '<div class="boss-mission-item">Aucune nouvelle mission terminée.</div>';
+            : `<div class="boss-mission-item">${window.t('Aucune nouvelle mission terminée.')}</div>`;
     }
     gameState = 'BOSS_REWARD';
     leavePlayingState();
@@ -1358,6 +1425,11 @@ function resetGameData() {
         console.warn("Impossible de réinitialiser le stockage :", error);
     }
     hasSavedProgress = false;
+    completedBuilds = [];
+    completedDifficulties = [];
+    buildMaxedStats = {};
+    leversActivated = 0;
+    completion100Notified = false;
     saveWritesAuthorized = true;
     const playButton = document.getElementById('btn-continue');
     if (playButton) playButton.disabled = false;
@@ -1373,7 +1445,7 @@ function resetGameData() {
     player.skin = "default";
     player.ownedSkins = ["default"];
 
-    player.defense = 0;
+    player.defense = 0.1;
 
     player.attackDamage = 22;
 
@@ -1519,9 +1591,9 @@ function saveFromOptions() {
     if (saveSettings() && saveGame(true)) {
         updateMissionByEvent('save');
         saveGame(true);
-        showNotification('Sauvegarde effectuée !');
+        showNotification(window.t('Sauvegarde effectuée !'));
     } else {
-        showNotification('Impossible de sauvegarder.');
+        showNotification(window.t('Impossible de sauvegarder.'));
     }
 }
 
@@ -1529,14 +1601,14 @@ function confirmResetSave() {
     if (!window.confirm('Réinitialiser la sauvegarde et toutes les améliorations ?')) return;
     resetGameData();
     syncOptionsControls();
-    showNotification('Sauvegarde réinitialisée.');
+    showNotification(window.t('Sauvegarde réinitialisée.'));
 }
 
 function showNextNotification() {
     if (notificationInProgress || !notificationQueue.length) return;
     const { text, duration } = notificationQueue.shift();
     notificationInProgress = true;
-    notificationBanner.innerText = text;
+    notificationBanner.innerText = window.t(text);
     notificationBanner.classList.add('show');
     playUiTone(text.includes('Mission') || text.includes('découverte') ? 880 : 660);
     notificationBanner._timeout = setTimeout(() => {
@@ -1575,7 +1647,7 @@ function buildWorldSelectUI() {
         block.className = 'world-block';
         let title = document.createElement('div');
         title.className = 'world-block-title';
-        title.innerText = w.name;
+        title.innerText = window.t(w.name);
         block.appendChild(title);
 
         let grid = document.createElement('div');
@@ -1769,7 +1841,7 @@ function updateMenuStats() {
         `${Math.round(player.defense * 100)}%${player.defense >= MAX_PLAYER_DEFENSE - 1e-9 ? ' · MAX' : ''}`;
 
     document.getElementById("menu-speed").textContent =
-        player.speed.toFixed(1);
+        player.speed.toFixed(1) + (player.speed >= MAX_PLAYER_SPEED - 0.05 ? ' · MAX' : '');
 
     document.getElementById("menu-gold").textContent =
         Math.floor(player.gold);
@@ -1806,6 +1878,14 @@ function getGameCompletionPercent() {
         + Number(phase3Stats.bossRushWins > 0)
         + Number(endlessModeState.bestClearedWave >= 50)
         + completedOptionalChallenges;
+    const completedBuildCount = completedBuilds.length;
+    const completedDifficultyCount = completedDifficulties.length;
+    const leversTarget = 10;
+    const maxedStatKeys = ['hp', 'speed', 'defense', 'damage'];
+    const completedMaxedBuildCount = Object.keys(BUILD_DEFINITIONS).filter(buildId => {
+        const stats = buildMaxedStats[buildId] || {};
+        return maxedStatKeys.every(key => stats[key] === true);
+    }).length;
 
     const weightedPercent =
         (totalLevels ? completedLevelCount / totalLevels * GAME_COMPLETION_WEIGHTS.levels : 0)
@@ -1813,7 +1893,11 @@ function getGameCompletionPercent() {
         + (validSecretIds.size ? discoveredSecretCount / validSecretIds.size * GAME_COMPLETION_WEIGHTS.secretRooms : 0)
         + (Object.keys(BESTIARY_DEFINITIONS).length
             ? discoveredBestiaryCount / Object.keys(BESTIARY_DEFINITIONS).length * GAME_COMPLETION_WEIGHTS.bestiary : 0)
-        + (completedSpecialChallenges / SPECIAL_CHALLENGE_COUNT * GAME_COMPLETION_WEIGHTS.specialChallenges);
+        + (completedSpecialChallenges / SPECIAL_CHALLENGE_COUNT * GAME_COMPLETION_WEIGHTS.specialChallenges)
+        + (Object.keys(BUILD_DEFINITIONS).length ? completedBuildCount / Object.keys(BUILD_DEFINITIONS).length * GAME_COMPLETION_WEIGHTS.builds : 0)
+        + (Object.keys(DIFFICULTY_MODES).length ? completedDifficultyCount / Object.keys(DIFFICULTY_MODES).length * GAME_COMPLETION_WEIGHTS.difficulties : 0)
+        + (leversTarget ? leversActivated / leversTarget * GAME_COMPLETION_WEIGHTS.levers : 0)
+        + (Object.keys(BUILD_DEFINITIONS).length ? completedMaxedBuildCount / Object.keys(BUILD_DEFINITIONS).length * GAME_COMPLETION_WEIGHTS.maxedStats : 0);
 
     return Math.min(100, Math.round(weightedPercent * 10) / 10);
 }
@@ -1823,6 +1907,7 @@ function updateGameCompletionDisplay() {
     const label = document.getElementById('game-completion-percent');
     const track = document.getElementById('game-completion-track');
     const fill = document.getElementById('game-completion-fill');
+    const badge = document.getElementById('game-completion-badge');
     const formattedPercent = Number.isInteger(percent)
         ? String(percent)
         : percent.toFixed(1).replace('.', ',');
@@ -1830,6 +1915,23 @@ function updateGameCompletionDisplay() {
     if (label) label.textContent = `${formattedPercent}%`;
     if (track) track.setAttribute('aria-valuenow', String(percent));
     if (fill) fill.style.width = `${percent}%`;
+
+    // Badge 100% complétion
+    const isComplete = percent >= 100;
+    if (badge) {
+        if (isComplete) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    // Notification unique quand 100% atteint pour la première fois
+    if (isComplete && !completion100Notified) {
+        completion100Notified = true;
+        showNotification(window.t('🏆 COMPLÉTION 100% ATTEINTE ! Félicitations, vous avez tout débloqué !'), 6000);
+        saveGame(true);
+    }
 }
 
 function renderOwnedSkins() {
@@ -1867,27 +1969,27 @@ function renderOwnedSkins() {
         const content = document.createElement('div');
         content.className = 'skin-card-content';
         const name = document.createElement('strong');
-        name.textContent = detail[0];
+        name.textContent = window.t(detail[0]);
         const description = document.createElement('small');
-        description.textContent = detail[2];
+        description.textContent = window.t(detail[2]);
         content.append(name, description);
         const button = document.createElement('button');
         button.className = 'btn-ui';
-        button.textContent = player.skin === skin ? 'ÉQUIPÉ ✓' : 'ÉQUIPER';
+        button.textContent = player.skin === skin ? window.t('ÉQUIPÉ ✓') : window.t('ÉQUIPER');
         button.disabled = player.skin === skin;
         button.onclick = () => {
             player.skin = skin;
             saveGame(true);
             updateMenuStats();
             renderOwnedSkins();
-            showNotification(`${detail[0]} équipé !`);
+            showNotification(window.t(detail[0]) + window.t(' équipé !'));
         };
         card.append(preview, content, button);
         container.appendChild(card);
     });
     const equipped = document.getElementById('equipped-skin-name');
     const count = document.getElementById('owned-skins-count');
-    if (equipped) equipped.textContent = (skinDetails[player.skin] || [player.skin])[0].toUpperCase();
+    if (equipped) equipped.textContent = window.t((skinDetails[player.skin] || [player.skin])[0]).toUpperCase();
     if (count) count.textContent = player.ownedSkins.length;
 }
 
@@ -1901,22 +2003,29 @@ function updateShopCards() {
         const skinId = productId && productId.startsWith('skin-') ? productId.slice(5) : null;
         const owned = skinId
             ? player.ownedSkins.includes(skinId)
-            : Boolean(productId && purchasedProducts[productId]);
+            : Boolean(productId && (purchasedProducts[productId]
+                || (productId.startsWith('ability-') && player.abilities.includes(productId.slice(8)))
+                || (productId.startsWith('relic-') && player.relics.includes(productId.slice(6)))));
         const maxed = (productId === 'health-upgrade' && player.maxHp >= MAX_PLAYER_HP)
             || (productId === 'defense-upgrade' && player.defense >= MAX_PLAYER_DEFENSE - 1e-9)
-            || (productId === 'attack-upgrade' && player.attackDamage >= MAX_PLAYER_ATTACK_DAMAGE);
+            || (productId === 'attack-upgrade' && player.attackDamage >= MAX_PLAYER_ATTACK_DAMAGE)
+            || (productId === 'speed-upgrade' && player.speed >= MAX_PLAYER_SPEED - 0.05);
         if (skinId && owned) {
             const equipped = player.skin === skinId;
             button.disabled = equipped;
-            button.textContent = equipped ? 'ÉQUIPÉ ✓' : 'ÉQUIPER';
+            button.textContent = equipped ? window.t('ÉQUIPÉ ✓') : window.t('ÉQUIPER');
         } else if (maxed) {
             button.disabled = true;
-            button.textContent = 'MAX';
+            button.textContent = window.t('MAX');
         } else {
             button.disabled = (owned && !repeatable) || (!owned && player.gold < price);
-            button.textContent = owned && !repeatable ? 'ACQUIS ✓' : 'ACHETER';
+            button.textContent = owned && !repeatable ? window.t('ACHETÉ') : window.t('ACHETER');
         }
     });
     const goldDisplay = document.getElementById('shop-gold-display');
     if (goldDisplay) goldDisplay.textContent = Math.floor(player.gold);
 }
+
+window.addEventListener('dungeons:language-changed', () => {
+    updateShopCards();
+});

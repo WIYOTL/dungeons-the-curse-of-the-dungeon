@@ -12,6 +12,7 @@ const COLLECTIBLE_PRODUCT_IDS = [
     'skin-shadow',
     'ability-precision',
     'ability-ember',
+    'ability-vampirism',
     'relic-frost',
     'relic-ward',
     'relic-leech',

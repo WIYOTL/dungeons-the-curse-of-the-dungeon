@@ -1,6 +1,6 @@
 # Dungeons: The Curse of the Dungeon <sup>WEB Edition</sup>
 
-**Français** · [English](README_en.md) · **Version 1.0.0**
+**Français** · [English](README_en.md) · **Version 1.1.0**
 
 > **Entrez dans le donjon. Brisez la malédiction.**<br>
 > Un jeu d’action fantastique jouable dans votre navigateur, sur ordinateur comme sur mobile.
@@ -34,6 +34,7 @@ Explorez **3 mondes et 21 niveaux**, affrontez leurs gardiens et cherchez les **
 
 - **Une campagne complète** avec niveaux, ennemis, boss et progression sauvegardée.
 - **Un combat d’action** : attaques, esquives rapides, parades et interactions.
+- **Une interface en français et en anglais**, sélectionnée selon la langue du navigateur et modifiable à tout moment.
 - **Trois archétypes** — Vanguard, Duelist et Ranger — pour varier votre façon de jouer.
 - **Des améliorations et une boutique** pour faire évoluer votre progression.
 - **Des défis quotidiens à seed partageable** : invitez vos amis à tenter la même configuration.
@@ -116,6 +117,33 @@ npm run build
 | `service-worker.js`, `manifest.webmanifest` | Fonctions PWA |
 
 Pour les détails de publication ou de configuration Supabase, voir le [guide de déploiement](DEPLOYMENT.md).
+
+## Mises à jour
+
+### V1.1.0 (12 novembre 2026)
+
+- PV de départ fixés à 120 (base)
+- Défense de départ fixée à 10 % pour tous les builds
+- Plafond de vitesse ajouté (8 max)
+- Nouveau build : Paladin (bouclier absorbant, soin par parade réussie)
+- Nouvel artefact boutique : Vampirisme (soins sur coup critique)
+- Badge « Collectionneur complet » quand les 19 produits de la boutique sont achetés
+- Bouton « ACQUIS » corrigé pour les artefacts permanents de la boutique
+- Section « Complétion du jeu » rendue visible dans le menu titre
+- Passage de la version 1.0.0 à 1.1.0
+
+### V1.0.0 (11 novembre 2026)
+
+- Version initiale
+- Campagne : 3 mondes, 21 niveaux, 3 boss
+- 7 salles secrètes
+- 3 builds : Vanguard, Duelist, Ranger
+- 30 missions secondaires avec récompenses
+- Modes : New Game+, Mode Sans Fin, Boss-Rush, Défi Quotidien seedé
+- Boutique : skins, améliorations de caractéristiques, artefacts permanents
+- Sauvegarde locale + cloud Supabase optionnel (désactivé par défaut)
+- PWA, contrôles tactiles, accessibilité
+- Interface FR/EN
 
 ## Communauté et licence
 

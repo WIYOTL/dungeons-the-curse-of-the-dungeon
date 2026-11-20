@@ -1,6 +1,6 @@
 # Dungeons: The Curse of the Dungeon <sup>WEB Edition</sup>
 
-[Français](README.md) · **English** · **Version 1.0.0**
+[Français](README.md) · **English** · **Version 1.1.0**
 
 > **Enter the dungeon. Break the curse.**<br>
 > A fantasy action game you can play in your browser on desktop or mobile.
@@ -34,6 +34,7 @@ Explore **3 worlds and 21 levels**, face their guardians, and uncover **7 secret
 
 - **A full campaign** with levels, enemies, bosses, and persistent progression.
 - **Action combat** with attacks, quick dashes, parries, and interactions.
+- **A French and English interface**, selected from your browser language and changeable at any time.
 - **Three hero archetypes** — Vanguard, Duelist, and Ranger — for different play styles.
 - **Upgrades and a shop** to shape your progression.
 - **Shareable seeded daily challenges**: invite friends to tackle the same setup.
@@ -116,6 +117,33 @@ npm run build
 | `service-worker.js`, `manifest.webmanifest` | PWA support |
 
 For publishing or Supabase setup, see the [deployment guide](DEPLOYMENT.md).
+
+## Updates
+
+### V1.1.0 (November 12, 2026)
+
+- Starting HP fixed at 120 (base)
+- Starting defense fixed at 10 % for all builds
+- Speed cap added (8 max)
+- New build: Paladin (shield absorption, heal on successful parry)
+- New shop artifact: Vampirism (heal on critical hit)
+- « Collectionneur complet » badge when all 19 shop products are purchased
+- « OWNED » button fixed for permanent artifacts in the shop
+- « Game completion » section now visible in the title menu
+- Version bumped from 1.0.0 to 1.1.0
+
+### V1.0.0 (November 11, 2026)
+
+- Initial release
+- Campaign: 3 worlds, 21 levels, 3 bosses
+- 7 secret rooms
+- 3 builds: Vanguard, Duelist, Ranger
+- 30 side missions with rewards
+- Modes: New Game+, Endless Mode, Boss Rush, seeded Daily Challenge
+- Shop: skins, stat upgrades, permanent artifacts
+- Local save + optional Supabase cloud (disabled by default)
+- PWA, touch controls, accessibility
+- FR/EN interface
 
 ## Community and license
 

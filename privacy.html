@@ -20,6 +20,15 @@
         a { color: #66fcf1; text-underline-offset: 3px; }
         a:focus-visible { outline: 2px solid #f9d342; outline-offset: 3px; }
         .back-link { display: inline-block; margin-bottom: 28px; }
+        .language-picker { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+        .language-picker select {
+            padding: 6px 9px;
+            border: 1px solid #3b5558;
+            border-radius: 6px;
+            background: #111820;
+            color: #f0eee8;
+            font: inherit;
+        }
         h1, h2 { color: #f9d342; line-height: 1.25; }
         h1 { font-size: clamp(2rem, 7vw, 3rem); margin: 0 0 8px; }
         h2 { font-size: 1.25rem; margin: 30px 0 8px; }
@@ -48,6 +57,13 @@
 </head>
 <body>
 <main>
+    <label class="language-picker" for="language-select-privacy">
+        <span>Langue</span>
+        <select id="language-select-privacy" data-language-select aria-label="Sélectionner la langue">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+        </select>
+    </label>
     <a class="back-link" href="./index.html">← Retour à Dungeons</a>
     <h1>Confidentialité</h1>
     <p class="updated">Dungeons: The Curse of the Dungeon · Dernière mise à jour : 11 novembre 2026</p>
@@ -113,5 +129,6 @@
         <a href="mailto:contact.wiyotl@gmail.com">Contacter le support</a>
     </footer>
 </main>
+<script src="js/i18n.js"></script>
 </body>
 </html>

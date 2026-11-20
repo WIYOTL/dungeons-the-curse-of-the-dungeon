@@ -19,12 +19,18 @@ test('daily modifiers are deterministic, supported, and unique per seed', () => 
     assert.ok(combinations.size > 1);
 });
 
+test('build stats keep every build at the 120 HP floor on selection and reload', () => {
+    const progression = fs.readFileSync(path.join(root, 'js/save-progression.js'), 'utf8');
+    assert.match(progression, /Math\.max\(BASE_PLAYER_HP, Math\.round\(baseMaxHp \* build\.hp/);
+    assert.match(progression, /Math\.max\(BASE_PLAYER_HP, save\.maxHp\)/);
+});
+
 test('play time formatting handles seconds, minutes, and hours', () => {
-    assert.equal(formatPlayTime(0), '0 min 00 s');
-    assert.equal(formatPlayTime(125), '2 min 05 s');
-    assert.equal(formatPlayTime(3600), '1 h 00 min');
-    assert.equal(formatPlayTime(3665), '1 h 01 min');
-    assert.equal(formatPlayTime(Number.NaN), '0 min 00 s');
+    assert.equal(formatPlayTime(0), '0 h 00 min 00 s');
+    assert.equal(formatPlayTime(125), '0 h 02 min 05 s');
+    assert.equal(formatPlayTime(3600), '1 h 00 min 00 s');
+    assert.equal(formatPlayTime(3665), '1 h 01 min 05 s');
+    assert.equal(formatPlayTime(Number.NaN), '0 h 00 min 00 s');
 });
 
 test('shop audit compares the complete rendered product id set', () => {
@@ -32,7 +38,7 @@ test('shop audit compares the complete rendered product id set', () => {
     const page = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const expected = [...catalogue.matchAll(/^\s*'([^']+)',?$/gm)].map(match => match[1]);
     const rendered = [...page.matchAll(/data-product-id="([^"]+)"/g)].map(match => match[1]);
-    assert.equal(expected.length, 18);
+    assert.equal(expected.length, 19);
     assert.deepEqual([...rendered].sort(), [...expected].sort());
     assert.match(fs.readFileSync(path.join(root, 'js/save-progression.js'), 'utf8'), /renderedProductIdSet\.size === renderedProductIds\.length/);
     assert.match(fs.readFileSync(path.join(root, 'js/save-progression.js'), 'utf8'), /\.every\(id => renderedProductIdSet\.has\(id\)\)/);

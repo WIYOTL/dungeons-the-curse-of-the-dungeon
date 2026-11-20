@@ -119,7 +119,7 @@ window.addEventListener('resize', resizeMobileGameCanvas);
 
 function flushActiveGameSave() {
     if (saveWritesAuthorized && !saveGame(true)) {
-        console.error('La progression active n’a pas pu être sauvegardée.');
+        console.error(window.t('La progression active n’a pas pu être sauvegardée.'));
     }
 }
 
@@ -485,7 +485,7 @@ function validateGeneratedLevelLayout() {
         y: exitDoor.y + exitDoor.h / 2
     };
     if (!hasWalkablePath({ x: player.x, y: player.y }, portal)) {
-        return { valid: false, reason: 'Le portail est inaccessible depuis le point de départ.' };
+        return { valid: false, reason: window.t('Le portail est inaccessible depuis le point de départ.') };
     }
     const room = getSecretRoomForLevel(currentWorldIndex, currentLevelIndex);
     if (room) {
@@ -868,6 +868,9 @@ function loadLevel(worldIdx, lvlIdx) {
     if (lvlIdx % 2 === 1 && !level.isBoss) {
         levelElements.push({ type: 'key', x: 1040, y: 500, collected: false, radius: 13 });
         levelElements.push({ type: 'lockedDoor', x: 1080, y: 500, w: 52, h: 90, locked: true });
+        if (worldIdx === 2 && lvlIdx === 5) {
+            levelElements.push({ type: 'lever', x: 720, y: 180, activated: false, radius: 15 });
+        }
     } else if (!level.isBoss) {
         levelElements.push({ type: 'lever', x: 720, y: 180, activated: false, radius: 15 });
     }
@@ -875,7 +878,7 @@ function loadLevel(worldIdx, lvlIdx) {
 
     exitDoor = generateDynamicPortalPosition(walls, player.x, player.y, 64, 88);
     if (!exitDoor) {
-        reportRuntimeError(new Error('Impossible de trouver une position sûre pour le portail'), 'Chargement');
+        reportRuntimeError(new Error(window.t('Impossible de trouver une position sûre pour le portail')), window.t('Chargement'));
         return restorePreviousLevel();
     }
     let altPositions = [
@@ -934,7 +937,7 @@ function loadLevel(worldIdx, lvlIdx) {
         const enemyRadius = isBoss ? (lData.bossType === 2 ? 46 : (lData.bossType === 1 ? 42 : 38)) : 16;
         const spawn = findEnemySpawn(enemyRadius);
         if (!spawn) {
-            reportRuntimeError(new Error('Impossible de trouver une position sûre pour un ennemi'), 'Chargement');
+            reportRuntimeError(new Error(window.t('Impossible de trouver une position sûre pour un ennemi')), window.t('Chargement'));
             return restorePreviousLevel();
         }
         const dailyModifiers = activeChallenge === 'daily' ? getCurrentDailyChallengeModifiers() : [];
@@ -989,8 +992,8 @@ function loadLevel(worldIdx, lvlIdx) {
         ? OPTIONAL_CHALLENGE_IDS.filter(id => challengeState[id] === true)
         : [];
     document.getElementById('world-display').innerText = activeChallenge === 'endless'
-        ? `SANS FIN · VAGUE ${endlessWave} | ${world.name.split(':')[0]} · Nv ${lvlIdx + 1}/${world.levels.length}`
-        : `${world.name.split(':')[0]}${newGamePlusLevel ? ` · NG+ ${newGamePlusLevel}` : ''} | Nv ${lvlIdx + 1}/${world.levels.length}`;
+        ? `${window.t('SANS FIN')} · ${window.t('VAGUE')} ${endlessWave} | ${window.t(world.name.split(':')[0])} · ${window.t('Nv')} ${lvlIdx + 1}/${world.levels.length}`
+        : `${window.t(world.name.split(':')[0])}${newGamePlusLevel ? ` · NG+ ${newGamePlusLevel}` : ''} | ${window.t('Nv')} ${lvlIdx + 1}/${world.levels.length}`;
     playWorldCue(worldIdx, Boolean(level.isBoss));
     resetCameraToPlayer();
     return true;
@@ -1036,20 +1039,24 @@ function unlockNextProgression(wIdx, lIdx) {
 
 function offerProgressionChoice() {
     const options = [
-        { id: 'precision', label: 'Précision : +12% de chances de coup critique' },
-        { id: 'ember', label: 'Embrasement : vos coups appliquent un dégât sur la durée' },
-        { id: 'frost', label: 'Relique de givre : vos coups ralentissent les ennemis' },
-        { id: 'ward', label: 'Égide : les pièges infligent 3 dégâts de moins' },
-        { id: 'leech', label: 'Relique sanguinaire : récupérez 4% des dégâts infligés en PV' },
-        { id: 'fortune', label: 'Idole dorée : obtenez 25% d’or supplémentaire' },
-        { id: 'shell', label: 'Cœur de pierre : subissez 10% de dégâts en moins' }
+        { id: 'precision', label: window.t('Précision : +12% de chances de coup critique') },
+        { id: 'ember', label: window.t('Embrasement : vos coups appliquent un dégât sur la durée') },
+        { id: 'frost', label: window.t('Relique de givre : vos coups ralentissent les ennemis') },
+        { id: 'ward', label: window.t('Égide : les pièges infligent 3 dégâts de moins') },
+        { id: 'leech', label: window.t('Relique sanguinaire : récupérez 4% des dégâts infligés en PV') },
+        { id: 'fortune', label: window.t('Idole dorée : obtenez 25% d’or supplémentaire') },
+        { id: 'shell', label: window.t('Cœur de pierre : subissez 10% de dégâts en moins') }
     ];
     const available = options.filter(option => !player.abilities.includes(option.id) && !player.relics.includes(option.id));
     if (!available.length) return;
     const choice = available[(currentWorldIndex + currentLevelIndex + player.abilities.length) % available.length];
+    const productId = choice.id.startsWith('frost') || choice.id.startsWith('ward') || choice.id.startsWith('leech') || choice.id.startsWith('fortune') || choice.id.startsWith('shell')
+        ? 'relic-' + choice.id
+        : 'ability-' + choice.id;
     if (choice.id === 'frost' || choice.id === 'ward') player.relics.push(choice.id);
     else player.abilities.push(choice.id);
-    showNotification(`✨ Choix de progression : ${choice.label}`, 4200);
+    markPurchasedProduct(productId);
+    showNotification(window.t('✨ Choix de progression : ') + choice.label, 4200);
     playCue('reward');
     saveGame();
 }
@@ -1075,12 +1082,12 @@ function update(frameScale = 1) {
             gameState = 'GAMEOVER';
             clearInputState();
             leavePlayingState();
-            document.querySelector('#gameover-screen .gameover-title').textContent = 'TEMPS ÉCOULÉ !';
-            document.querySelector('#gameover-screen .gameover-subtitle').textContent = 'La limite du Speed-run est atteinte pour ce niveau.';
-            document.getElementById('gameover-world').textContent = `Monde : ${currentWorldIndex + 1}`;
-            document.getElementById('gameover-level').textContent = `Niveau : ${currentLevelIndex + 1}`;
-            document.getElementById('gameover-gold').textContent = `Or : ${player.gold} 🪙`;
-            document.getElementById('gameover-score').textContent = `Score : ${score}`;
+            document.querySelector('#gameover-screen .gameover-title').textContent = window.t('TEMPS ÉCOULÉ !');
+            document.querySelector('#gameover-screen .gameover-subtitle').textContent = window.t('La limite du Speed-run est atteinte pour ce niveau.');
+            document.getElementById('gameover-world').textContent = window.t('Monde : ') + (currentWorldIndex + 1);
+            document.getElementById('gameover-level').textContent = window.t('Niveau : ') + (currentLevelIndex + 1);
+            document.getElementById('gameover-gold').textContent = window.t('Or : ') + player.gold + ' 🪙';
+            document.getElementById('gameover-score').textContent = window.t('Score : ') + score;
             showOverlay('gameover-screen');
             return;
         }
@@ -1175,6 +1182,13 @@ function update(frameScale = 1) {
                     if (player.relics.includes('leech')) {
                         player.hp = Math.min(player.maxHp, Math.round(player.hp + actualDmg * 0.04));
                     }
+                    if (critical && player.abilities.includes('vampirism')) {
+                        const vampHeal = Math.floor(actualDmg * 0.15);
+                        if (vampHeal > 0) {
+                            player.hp = Math.min(player.maxHp, player.hp + vampHeal);
+                            spawnDamageText(player.x, player.y - player.radius - 10, `+${vampHeal} PV`, '#ff69b4');
+                        }
+                    }
                     phase3Stats.damageDealt += actualDmg;
                     e.statusEffects = e.statusEffects || {};
                     if (player.abilities.includes('ember')) e.statusEffects.burn = 100;
@@ -1239,7 +1253,7 @@ function update(frameScale = 1) {
                 e.specialCd = 30;
                 bossTelegraphs.push({ x: e.x, y: e.y, radius: 120 + nextPhase * 18, life: 45, color: '#e056fd', damage: e.damage * 0.8, delay: 28 });
                 playCue('bossPhase');
-                showNotification(`${e.bossName || 'Le boss'} entre en phase ${nextPhase} !`, 2200);
+                showNotification(window.t(e.bossName || 'Le boss') + window.t(' entre en phase ') + nextPhase + window.t(' !'), 2200);
             }
         }
         if (e.isBoss && e.specialCd === 0) {
@@ -1262,8 +1276,16 @@ function update(frameScale = 1) {
                 if (player.parryTimer > 0) {
                     e.stagger = 35;
                     e.attackCd = 45;
-                    spawnDamageText(e.x, e.y - e.radius - 10, 'PARRY', '#66fcf1');
+                    spawnDamageText(e.x, e.y - e.radius - 10, window.t('PARADE'), '#66fcf1');
                     playCue('parry');
+                    if (selectedBuild === 'paladin') {
+                        const heal = Math.min(8, player.maxHp - player.hp);
+                        if (heal > 0) {
+                            player.hp = Math.round(player.hp + heal);
+                            spawnDamageText(player.x, player.y - player.radius - 10, `+${heal} PV`, '#00d9ff');
+                            playCue('heal');
+                        }
+                    }
                     return;
                 }
                 const finalDamage = receiveDamage(e.damage);
@@ -1309,7 +1331,7 @@ function update(frameScale = 1) {
             }
         } else if (element.type === 'key' && !element.collected && Math.hypot(player.x - element.x, player.y - element.y) < 30) {
             element.collected = true;
-            showNotification('🗝️ Clé trouvée : une porte alternative est ouverte.', 2500);
+            showNotification(window.t('🗝️ Clé trouvée : une porte alternative est ouverte.'), 2500);
             const door = levelElements.find(item => item.type === 'lockedDoor');
             if (door) {
                 door.locked = false;
@@ -1318,8 +1340,12 @@ function update(frameScale = 1) {
         } else if (element.type === 'lever' && isInputPressed('e') && !interactWasDown
             && !element.activated && Math.hypot(player.x - element.x, player.y - element.y) < 45) {
             element.activated = true;
+            leversActivated++;
+            if (typeof updateGameCompletionDisplay === 'function') {
+                updateGameCompletionDisplay();
+            }
             enemies.forEach(enemy => enemy.speed *= 0.8);
-            showNotification('⚙️ Levier activé : les ennemis sont ralentis.', 2500);
+            showNotification(window.t('⚙️ Levier activé : les ennemis sont ralentis.'), 2500);
         }
     });
     bossTelegraphs.forEach(t => {
@@ -1357,7 +1383,7 @@ function update(frameScale = 1) {
                         spawnParticles(e.x, e.y, '#f9d342', 40);
                         showBossRewardScreen(reward);
                     } else if (claimedBossRewards.includes(currentWorldIndex)) {
-                        showNotification('Boss vaincu : récompense déjà récupérée.', 3500);
+                        showNotification(window.t('Boss vaincu : récompense déjà récupérée.'), 3500);
                     }
                 }
             }
@@ -1388,7 +1414,7 @@ function update(frameScale = 1) {
     if (exitDoor && !wasDoorOpen && exitDoor.open && prevCount > 0) {
         portalNotificationShown = true;
         let isBossFloor = worldsData[currentWorldIndex].levels[currentLevelIndex].isBoss;
-        showNotification(isBossFloor ? "BOSS VAINCU — Portail vers le monde suivant ouvert !" : "PORTAIL OUVERT — La porte vers le niveau suivant est accessible !");
+        showNotification(isBossFloor ? window.t("BOSS VAINCU — Portail vers le monde suivant ouvert !") : window.t("PORTAIL OUVERT — La porte vers le niveau suivant est accessible !"));
         spawnParticles(exitDoor.x + exitDoor.w/2, exitDoor.y + exitDoor.h/2, '#66fcf1', 30);
         saveGame();
     }
@@ -1431,10 +1457,10 @@ function update(frameScale = 1) {
                 if (nextBoss) {
                     if (!loadLevel(nextBoss.worldIndex, nextBoss.levelIndex)) {
                         returnToTitle();
-                        showNotification('Le Boss-Rush a été interrompu : impossible de charger le boss suivant.');
+                        showNotification(window.t('Le Boss-Rush a été interrompu : impossible de charger le boss suivant.'));
                         return;
                     }
-                    showNotification(`Boss ${bossRushState.bossesDefeated.length + 1} / ${bossRushState.bossOrder.length} : ${worldsData[nextBoss.worldIndex].levels[nextBoss.levelIndex].bossName}`);
+                    showNotification(window.t('Boss ') + (bossRushState.bossesDefeated.length + 1) + window.t(' / ') + bossRushState.bossOrder.length + window.t(' : ') + worldsData[nextBoss.worldIndex].levels[nextBoss.levelIndex].bossName);
                     saveGame(true);
                     return;
                 }
@@ -1452,7 +1478,7 @@ function update(frameScale = 1) {
                     showVictoryScreen();
                     return;
                 }
-                reportRuntimeError(new Error('Progression Boss-Rush incohérente : boss vaincu manquant'), 'Boss-Rush');
+                reportRuntimeError(new Error(window.t('Progression Boss-Rush incohérente : boss vaincu manquant')), window.t('Boss-Rush'));
                 returnToTitle();
                 return;
             }
@@ -1550,24 +1576,24 @@ function update(frameScale = 1) {
         clearInputState();
         leavePlayingState();
         document.querySelector('#gameover-screen .gameover-title').textContent =
-            endedEndlessRun ? 'FIN DU MODE SANS FIN' : 'GAME OVER';
+            endedEndlessRun ? window.t('FIN DU MODE SANS FIN') : window.t('GAME OVER');
         document.querySelector('#gameover-screen .gameover-subtitle').textContent = endedEndlessRun
-            ? `Vous avez atteint la vague ${endlessModeState.lastRunWave}. Meilleure série nettoyée : ${endlessModeState.bestClearedWave}.`
-            : "Votre aventure s'arrête ici...";
+            ? window.t('Vous avez atteint la vague ') + endlessModeState.lastRunWave + window.t('. Meilleure série nettoyée : ') + endlessModeState.bestClearedWave + window.t('.')
+            : window.t("Votre aventure s'arrête ici...");
         document.getElementById("gameover-world").textContent = endedEndlessRun
-            ? `Vague atteinte : ${endlessModeState.lastRunWave}`
-            : `Monde : ${currentWorldIndex + 1}`;
+            ? window.t('Vague atteinte : ') + endlessModeState.lastRunWave
+            : window.t('Monde : ') + (currentWorldIndex + 1);
         document.getElementById("gameover-level").textContent = endedEndlessRun
-            ? `Vague nettoyée : ${endlessModeState.bestClearedWave}`
-            : `Niveau : ${currentLevelIndex + 1}`;
+            ? window.t('Vague nettoyée : ') + endlessModeState.bestClearedWave
+            : window.t('Niveau : ') + (currentLevelIndex + 1);
         document.getElementById("gameover-gold").textContent =
-            `Or : ${player.gold} 🪙`;
+            window.t('Or : ') + player.gold + ' 🪙';
         document.getElementById("gameover-score").textContent =
-            `Score : ${score}`;
+            window.t('Score : ') + score;
         const shareButton = document.getElementById('gameover-share-result-btn');
         if (shareButton) shareButton.hidden = !dailyChallenge || !dailyChallenge.result;
         const retryButton = document.getElementById('retry-btn');
-        if (retryButton) retryButton.textContent = endedEndlessRun ? 'Recommencer sans fin ↻' : 'Réessayer 🔄';
+        if (retryButton) retryButton.textContent = endedEndlessRun ? window.t('Recommencer sans fin ↻') : window.t('Réessayer 🔄');
         if (endedEndlessRun) saveGame(true);
         showOverlay("gameover-screen");
     }
@@ -2180,6 +2206,11 @@ if (player.skin === 'endless-sentinel') {
     glowColor = '#c084fc';
 }
 
+if (player.skin === 'endless-conqueror') {
+    playerColor = '#ff922b';
+    glowColor = '#ffad4d';
+}
+
 ctx.shadowColor = glowColor;
 ctx.shadowBlur = player.isDashing ? 22 : 8;
 
@@ -2255,16 +2286,16 @@ ctx.stroke();
         ctx.shadowColor = '#66fcf1';
         ctx.shadowBlur = 10;
         if (gameState === 'VICTORY') {
-            ctx.fillText('TOUS LES MONDES SONT NETTOYÉS !', canvas.width/2, canvas.height/2 - 40);
+            ctx.fillText(window.t('TOUS LES MONDES SONT NETTOYÉS !'), canvas.width/2, canvas.height/2 - 40);
         } else {
-            ctx.fillText('VOUS ÊTES MORT...', canvas.width/2, canvas.height/2 - 40);
+            ctx.fillText(window.t('VOUS ÊTES MORT...'), canvas.width/2, canvas.height/2 - 40);
         }
         ctx.shadowBlur = 0;
         ctx.font = '18px sans-serif';
         ctx.fillStyle = '#f9d342';
-        ctx.fillText(`Or amassé : ${player.gold} 🪙`, canvas.width/2, canvas.height/2 - 5);
+        ctx.fillText(window.t('Or amassé : ') + player.gold + ' 🪙', canvas.width/2, canvas.height/2 - 5);
         ctx.fillStyle = '#c5c6c7';
-        ctx.fillText(`Score Tactique Final : ${score}`, canvas.width/2, canvas.height/2 + 25);
+        ctx.fillText(window.t('Score Tactique Final : ') + score, canvas.width/2, canvas.height/2 + 25);
         ctx.font = '15px sans-serif';
         ctx.fillStyle = '#66fcf1';
     }
@@ -2313,7 +2344,7 @@ function runPhaseOneSelfTests() {
     const assertions = [
         ['21 niveaux sont définis', levelIds.length === 21],
         ['Les PV de départ sont 120 et le plafond est 300', Boolean(
-            BASE_PLAYER_HP * BUILD_DEFINITIONS.vanguard.hp === 120
+            BASE_PLAYER_HP === 120
             && MAX_PLAYER_HP === 300
             && formatPlayerHealth(120, 120) === '120 / 120'
             && formatPlayerHealth(300, 300) === '300 / 300 · MAX'
@@ -2443,8 +2474,8 @@ document.getElementById('retry-btn').onclick = () => {
 
     player.hp = player.maxHp;
     updateMissionByEvent('restart');
-    document.querySelector('#gameover-screen .gameover-title').textContent = 'GAME OVER';
-    document.querySelector('#gameover-screen .gameover-subtitle').textContent = "Votre aventure s'arrête ici...";
+    document.querySelector('#gameover-screen .gameover-title').textContent = window.t('GAME OVER');
+    document.querySelector('#gameover-screen .gameover-subtitle').textContent = window.t("Votre aventure s'arrête ici...");
 
     const loaded = loadLevel(
         currentWorldIndex,
@@ -2492,7 +2523,7 @@ window.addEventListener('error', event => {
     console.error('Erreur de demarrage du jeu :', event.error || event.message);
     const message = document.getElementById('notification-banner');
     if (message) {
-        message.textContent = 'Erreur JavaScript : ouvrez la console (F12).';
+        message.textContent = window.t('Erreur JavaScript : ouvrez la console (F12).');
         message.classList.add('show');
     }
 });

@@ -1,20 +1,20 @@
 (function () {
     const steps = [
-        ['Explorez', 'Utilisez ZQSD ou les flèches pour vous déplacer. Sur mobile, déplacez le joystick tactile. Cherchez les portes et les salles secrètes.'],
-        ['Combattez', 'ESPACE attaque, SHIFT effectue un dash, F déclenche une parade et E interagit avec les leviers. Les boutons tactiles offrent les mêmes actions.'],
-        ['Progressez', 'Ramassez l’or, utilisez les potions et améliorez votre héros dans la boutique. La progression se sauvegarde localement automatiquement.'],
-        ['Complétez le jeu', 'Terminez les 21 niveaux, les missions, les secrets, le bestiaire et les défis pour viser les 100 %. Les défis seedés se partagent depuis Progression & Défis.']
+        [window.t('Explorez'), window.t('Utilisez ZQSD ou les flèches pour vous déplacer. Sur mobile, déplacez le joystick tactile. Cherchez les portes et les salles secrètes.')],
+        [window.t('Combattez'), window.t('ESPACE attaque, SHIFT effectue un dash, F déclenche une parade et E interagit avec les leviers. Les boutons tactiles offrent les mêmes actions.')],
+        [window.t('Progressez'), window.t('Ramassez l’or, utilisez les potions et améliorez votre héros dans la boutique. La progression se sauvegarde localement automatiquement.')],
+        [window.t('Complétez le jeu'), window.t('Terminez les 21 niveaux, les missions, les secrets, le bestiaire et les défis pour viser les 100 %. Les défis seedés se partagent depuis Progression & Défis.')]
     ];
     let currentStep = 0;
     let previousFocus = null;
     const dialog = document.getElementById('tutorial-dialog');
 
     function renderStep() {
-        document.getElementById('tutorial-step-label').textContent = `ÉTAPE ${currentStep + 1} / ${steps.length}`;
+        document.getElementById('tutorial-step-label').textContent = window.t('ÉTAPE') + ' ' + (currentStep + 1) + ' / ' + steps.length;
         document.getElementById('tutorial-title').textContent = steps[currentStep][0];
         document.getElementById('tutorial-copy').textContent = steps[currentStep][1];
         const next = document.getElementById('tutorial-next');
-        next.textContent = currentStep === steps.length - 1 ? 'TERMINER' : 'SUIVANT';
+        next.textContent = currentStep === steps.length - 1 ? window.t('TERMINER') : window.t('SUIVANT');
     }
 
     function closeTutorial() {
@@ -22,7 +22,7 @@
         try {
             localStorage.setItem('dungeonsTutorialSeen', 'true');
         } catch (error) {
-            console.warn('Le tutoriel ne peut pas mémoriser sa fermeture :', error);
+            console.warn(window.t('Le tutoriel ne peut pas mémoriser sa fermeture :'), error);
         }
         previousFocus?.focus();
     }
@@ -65,7 +65,7 @@
     try {
         hasSeenTutorial = localStorage.getItem('dungeonsTutorialSeen') === 'true';
     } catch (error) {
-        console.warn('Le statut du tutoriel ne peut pas être lu :', error);
+        console.warn(window.t('Le statut du tutoriel ne peut pas être lu :'), error);
     }
     if (!hasSeenTutorial) window.setTimeout(window.openTutorial, window.__dungeonsEngineReady ? 500 : 1500);
 })();
