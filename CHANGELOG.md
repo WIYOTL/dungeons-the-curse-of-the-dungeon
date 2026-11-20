@@ -1,6 +1,6 @@
 # Changelog
 
-## V1.1.0 — 12 novembre 2026
+## V1.1.0 — 20 novembre 2026
 
 ### Ajout
 - Plafond de vitesse du joueur (8 maximum)
