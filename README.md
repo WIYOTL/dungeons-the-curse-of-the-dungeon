@@ -120,7 +120,7 @@ Pour les détails de publication ou de configuration Supabase, voir le [guide de
 
 ## Mises à jour
 
-### V1.1.0 (12 novembre 2026)
+### V1.1.0 (20 novembre 2026)
 
 - PV de départ fixés à 120 (base)
 - Défense de départ fixée à 10 % pour tous les builds
