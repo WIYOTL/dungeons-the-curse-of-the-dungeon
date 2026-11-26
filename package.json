@@ -1,6 +1,6 @@
 {
   "name": "dungeons-curse-of-the-dungeon",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "private": true,
   "description": "Static browser game with PWA support and optional Supabase cloud saves",
   "scripts": {

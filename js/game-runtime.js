@@ -1,8 +1,44 @@
+// Marqueur de build : affiché dans le pied de l'écran titre. Si ce libellé n'apparaît pas
+// sur l'appareil, le navigateur exécute un js/game-runtime.js périmé (cache).
+window.__DUNGEONS_BUILD = '1.1.2-build7-levers';
+
 const touchControlKeys = Object.create(null);
 const touchControlPointers = new Map();
 let gamepadInputState = Object.create(null);
 let activeGamepadIndex = null;
 let touchParryQueued = false;
+
+const SEPARATION_GRID_SIZE = 80;
+const separationGrid = new Map();
+
+function getSeparationGridKey(x, y) {
+    const gx = Math.floor(x / SEPARATION_GRID_SIZE);
+    const gy = Math.floor(y / SEPARATION_GRID_SIZE);
+    return `${gx},${gy}`;
+}
+
+function rebuildSeparationGrid() {
+    separationGrid.clear();
+    enemies.forEach((enemy, index) => {
+        const key = getSeparationGridKey(enemy.x, enemy.y);
+        if (!separationGrid.has(key)) separationGrid.set(key, []);
+        separationGrid.get(key).push({ enemy, index });
+    });
+}
+
+function getNearbyEnemies(enemy) {
+    const key = getSeparationGridKey(enemy.x, enemy.y);
+    const [gx, gy] = key.split(',').map(Number);
+    const nearby = [];
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            const neighborKey = `${gx + dx},${gy + dy}`;
+            const cell = separationGrid.get(neighborKey);
+            if (cell) nearby.push(...cell);
+        }
+    }
+    return nearby;
+}
 
 function isInputPressed(key) {
     return Boolean(keys[key] || gamepadInputState[key] || touchControlKeys[key] || (key === 'f' && touchParryQueued));
@@ -130,6 +166,10 @@ window.addEventListener('pagehide', flushActiveGameSave);
 
 function toggleGamePause() {
     if (gameState === 'PLAYING') {
+        if (challengeState['speed-run'] && runTimerStartTime !== null) {
+            runTimerPausedDuration += performance.now() - runTimerStartTime;
+            runTimerStartTime = null;
+        }
         gameState = 'PAUSED';
         clearInputState();
         leavePlayingState();
@@ -138,6 +178,10 @@ function toggleGamePause() {
         return true;
     }
     if (gameState === 'PAUSED') {
+        if (challengeState['speed-run']) {
+            runTimerStartTime = performance.now();
+            runTimerPausedDuration = 0;
+        }
         resumeGame();
         return true;
     }
@@ -198,10 +242,52 @@ window.addEventListener('keyup', e => {
     if (e.key) keys[e.key.toLowerCase()] = false;
 });
 
+// Anti-zoom tactile : iOS Safari ignore la meta viewport — on bloque le pincement en pleine partie.
+// Les gestes hors partie (menus) restent actifs pour l'accessibilité.
+const isGamePlaying = () => document.body.classList.contains('game-playing');
+const blockGameGestures = event => {
+    if (isGamePlaying()) event.preventDefault();
+};
+document.addEventListener('gesturestart', blockGameGestures, { passive: false });
+document.addEventListener('gesturechange', blockGameGestures, { passive: false });
+document.addEventListener('gestureend', blockGameGestures, { passive: false });
+// Pincement à deux doigts (Android Chrome, Safari ancien) : bloqué en pleine partie uniquement
+document.addEventListener('touchmove', event => {
+    if (isGamePlaying() && event.touches.length > 1) event.preventDefault();
+}, { passive: false });
+// Second doigt posé en pleine partie (ex. doigt sur le joystick + tap attaque) : empêche l'initiation d'un pincement
+document.addEventListener('touchstart', event => {
+    if (isGamePlaying() && event.touches.length > 1) event.preventDefault();
+}, { passive: false });
+// Double-tap : les boutons/joystick utilisent les événements pointer, que Safari ignore pour décider
+// du zoom — on bloque donc le second tap rapproché (< 350 ms) au niveau touch. Les overlays
+// (pause, boutique, panneaux) sont exclus pour ne pas avaler les clics rapides sur leurs boutons.
+let lastGameTouchEndTime = 0;
+document.addEventListener('touchend', event => {
+    if (!isGamePlaying() || event.target?.closest?.('.overlay-screen')) { lastGameTouchEndTime = 0; return; }
+    const now = performance.now();
+    const isRapidSecondTap = now - lastGameTouchEndTime < 350;
+    lastGameTouchEndTime = now;
+    if (isRapidSecondTap) event.preventDefault();
+}, { passive: false });
+// Double-tap de secours (moteurs qui ignorent encore touch-action) et zoom Ctrl+molette desktop
+document.addEventListener('dblclick', event => { if (isGamePlaying()) event.preventDefault(); });
+window.addEventListener('wheel', event => {
+    if (isGamePlaying() && event.ctrlKey) event.preventDefault();
+}, { passive: false });
+
 document.querySelectorAll('[data-touch-key]').forEach(button => {
     const key = button.dataset.touchKey;
+    // Buffer de tap : sur mobile, un tap très court peut durer moins d'une frame — on garde
+    // la touche enfoncée au moins TOUCH_MIN_PRESS_MS pour que la boucle de jeu l'enregistre.
+    const TOUCH_MIN_PRESS_MS = 100;
+    const pressTimes = new Map();
+    const delayedReleases = new Map();
     const press = event => {
         event.preventDefault();
+        const pending = delayedReleases.get(event.pointerId);
+        if (pending) { clearTimeout(pending); delayedReleases.delete(event.pointerId); }
+        pressTimes.set(event.pointerId, performance.now());
         if (gameState !== 'PLAYING') return;
         setTouchPointerKey(key, event.pointerId, true);
         if (key === 'f') touchParryQueued = true;
@@ -209,12 +295,28 @@ document.querySelectorAll('[data-touch-key]').forEach(button => {
     };
     const release = event => {
         event.preventDefault();
-        setTouchPointerKey(key, event.pointerId, false);
+        const pressedAt = pressTimes.get(event.pointerId) || 0;
+        const heldFor = performance.now() - pressedAt;
+        const doRelease = () => {
+            delayedReleases.delete(event.pointerId);
+            pressTimes.delete(event.pointerId);
+            setTouchPointerKey(key, event.pointerId, false);
+        };
+        if (heldFor < TOUCH_MIN_PRESS_MS) {
+            const pending = setTimeout(doRelease, TOUCH_MIN_PRESS_MS - heldFor);
+            delayedReleases.set(event.pointerId, pending);
+        } else {
+            doRelease();
+        }
     };
     button.addEventListener('pointerdown', press);
     button.addEventListener('pointerup', release);
     button.addEventListener('pointercancel', release);
     button.addEventListener('lostpointercapture', release);
+    // Safari décide du double-tap/pincement via les événements touch : on coupe tout comportement
+    // par défaut au niveau des boutons (les actions passent par les événements pointer ci-dessus).
+    button.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
+    button.addEventListener('touchend', event => event.preventDefault(), { passive: false });
 });
 
 document.querySelector('[data-touch-action="pause"]')?.addEventListener('click', () => {
@@ -266,6 +368,10 @@ if (touchJoystick) {
     touchJoystick.addEventListener('pointerup', resetJoystick);
     touchJoystick.addEventListener('pointercancel', resetJoystick);
     touchJoystick.addEventListener('lostpointercapture', resetJoystick);
+    // Idem boutons : aucun comportement tactile par défaut (zoom double-tap, pincement, loupe)
+    touchJoystick.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
+    touchJoystick.addEventListener('touchmove', event => event.preventDefault(), { passive: false });
+    touchJoystick.addEventListener('touchend', event => event.preventDefault(), { passive: false });
 }
 
 window.addEventListener('blur', clearInputState);
@@ -645,7 +751,8 @@ function findEnemyNavigationCell(field, x, y) {
 function getEnemySeparationVector(enemy) {
     let x = 0;
     let y = 0;
-    enemies.forEach(other => {
+    const nearby = getNearbyEnemies(enemy);
+    nearby.forEach(({ enemy: other }) => {
         if (other === enemy) return;
         const dx = enemy.x - other.x;
         const dy = enemy.y - other.y;
@@ -797,6 +904,10 @@ function loadLevel(worldIdx, lvlIdx) {
     currentWorldIndex = worldIdx;
     currentLevelIndex = lvlIdx;
     runTimerRemaining = challengeState['speed-run'] ? SPEED_RUN_LIMIT_SECONDS : null;
+    if (challengeState['speed-run']) {
+        runTimerStartTime = performance.now();
+        runTimerPausedDuration = 0;
+    }
     updateRunTimerDisplay();
     player.x = 120;
     player.y = 120;
@@ -996,6 +1107,7 @@ function loadLevel(worldIdx, lvlIdx) {
         : `${window.t(world.name.split(':')[0])}${newGamePlusLevel ? ` · NG+ ${newGamePlusLevel}` : ''} | ${window.t('Nv')} ${lvlIdx + 1}/${world.levels.length}`;
     playWorldCue(worldIdx, Boolean(level.isBoss));
     resetCameraToPlayer();
+    runtimeError = null;
     return true;
 }
 
@@ -1074,8 +1186,10 @@ function update(frameScale = 1) {
         }
     }
     gameTime += 0.05 * frameScale;
-    if (challengeState['speed-run'] && runTimerRemaining !== null) {
-        runTimerRemaining = Math.max(0, runTimerRemaining - frameScale / 60);
+    if (challengeState['speed-run'] && runTimerStartTime !== null) {
+        const elapsedMs = performance.now() - runTimerStartTime + runTimerPausedDuration;
+        const elapsedSeconds = elapsedMs / 1000;
+        runTimerRemaining = Math.max(0, SPEED_RUN_LIMIT_SECONDS - elapsedSeconds);
         updateRunTimerDisplay();
         if (runTimerRemaining === 0) {
             phase3Stats.deaths++;
@@ -1340,10 +1454,15 @@ function update(frameScale = 1) {
         } else if (element.type === 'lever' && isInputPressed('e') && !interactWasDown
             && !element.activated && Math.hypot(player.x - element.x, player.y - element.y) < 45) {
             element.activated = true;
-            leversActivated++;
+            const leverKey = `w${currentWorldIndex}-l${currentLevelIndex}`;
+            if (!activatedLeverKeys.includes(leverKey)) activatedLeverKeys.push(leverKey);
+            leversActivated = Math.max(leversActivated, activatedLeverKeys.length);
             if (typeof updateGameCompletionDisplay === 'function') {
                 updateGameCompletionDisplay();
             }
+            // Sauvegarde immédiate (sans debounce) : sur mobile, quitter/verrouiller l'écran
+            // pendant la fenêtre de 400 ms perdait sinon le levier qui vient d'être activé.
+            saveGame(true);
             enemies.forEach(enemy => enemy.speed *= 0.8);
             showNotification(window.t('⚙️ Levier activé : les ennemis sont ralentis.'), 2500);
         }
@@ -1732,27 +1851,35 @@ function drawMysticPortal(door) {
 }
 
 function draw() {
-    // Chaque frame repart d'un contexte propre : une transformation ou un clip
-    // Un etat residuel d'une frame precedente ne peut plus masquer le niveau.
+    if (!ctx) {
+        reportRuntimeError(new Error('Contexte de rendu 2D non disponible'), 'Rendu');
+        return;
+    }
+    if (canvas.width === 0 || canvas.height === 0) {
+        try { resizeMobileGameCanvas(); } catch (_) {}
+        if (canvas.width === 0 || canvas.height === 0) {
+            canvas.width = 800;
+            canvas.height = 600;
+        }
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#060709';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (gameState === 'TITLE') {
-        ctx.fillStyle = '#060709';
-        ctx.fillRect(
-            0, 
-            0, 
-            canvas.width, 
-            canvas.height
-        );
         return;
     }
 
     const currentWorld = worldsData[currentWorldIndex];
     if (!currentWorld) {
-        reportRuntimeError(new Error(`Monde invalide (${currentWorldIndex})`), 'Rendu');
+        ctx.fillStyle = '#8b0000';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Erreur: Monde invalide', canvas.width / 2, canvas.height / 2);
+        ctx.font = '14px sans-serif';
+        ctx.fillText('Ouvrez la console (F12) pour details', canvas.width / 2, canvas.height / 2 + 30);
         return;
     }
     let theme = currentWorld.theme;
@@ -1761,7 +1888,7 @@ function draw() {
     ctx.scale(mobileCanvasScale, mobileCanvasScale);
     ctx.translate(-Math.floor(camera.x), -Math.floor(camera.y));
 
-    // Fond de secours : le terrain reste visible m?me si un ?l?ment dynamique ?choue.
+    // Fond de secours : le terrain reste visible m�me si un �l�ment dynamique �choue.
     ctx.fillStyle = theme.floorBase;
     ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
@@ -2024,6 +2151,7 @@ function draw() {
         }
     });
 
+    rebuildSeparationGrid();
     enemies.forEach(e => {
         ctx.save();
         e.phase += 0.05;
@@ -2269,8 +2397,9 @@ ctx.stroke();
         ctx.textAlign = 'center';
         ctx.strokeStyle = 'rgba(6, 7, 9, 0.9)';
         ctx.lineWidth = 3;
-        ctx.strokeText(`-${text.value}`, text.x, text.y);
-        ctx.fillText(`-${text.value}`, text.x, text.y);
+        const damageLabel = typeof text.value === 'string' ? text.value : `-${text.value}`;
+        ctx.strokeText(damageLabel, text.x, text.y);
+        ctx.fillText(damageLabel, text.x, text.y);
         ctx.restore();
     });
 
@@ -2308,26 +2437,54 @@ let simulationAccumulator = 0;
 let renderAlpha = 1;
 
 function reportRuntimeError(error, source) {
-    runtimeError = {
-        source,
-        message: error && error.message ? error.message : String(error)
-    };
+    const message = error && error.message ? error.message : String(error);
+    const stack = error && error.stack ? error.stack : '';
+    runtimeError = { source, message };
     console.error(`Erreur ${source} :`, error);
+    showErrorModal(source, message, stack);
+}
+
+function showErrorModal(source, message, stack = '') {
+    const modal = document.getElementById('error-modal');
+    if (!modal) return;
+    const messageEl = document.getElementById('error-modal-message');
+    const detailsEl = document.getElementById('error-modal-details');
+    if (messageEl) messageEl.textContent = `${source}: ${message}`;
+    if (detailsEl) detailsEl.textContent = stack || message;
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
+    modal.style.zIndex = '10000';
+}
+
+function closeErrorModal() {
+    const modal = document.getElementById('error-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    runtimeError = null;
+}
+
+function copyErrorToClipboard() {
+    const detailsEl = document.getElementById('error-modal-details');
+    const text = detailsEl ? detailsEl.textContent : '';
+    if (text && navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('#error-modal .btn-ui:last-child');
+            if (btn) {
+                const original = btn.textContent;
+                btn.textContent = 'COPIÉ !';
+                setTimeout(() => { btn.textContent = original; }, 1500);
+            }
+        });
+    }
 }
 
 function drawRuntimeError() {
-    if (!runtimeError) return;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = 'rgba(80, 0, 0, 0.82)';
-    ctx.fillRect(8, 8, canvas.width - 16, 58);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Erreur ${runtimeError.source}: ${runtimeError.message}`, 18, 32);
-    ctx.font = '12px sans-serif';
-    ctx.fillText('Ouvrez la console (F12) pour le detail.', 18, 52);
-    ctx.restore();
+    // Error is now shown in modal dialog, not on canvas
+    return;
 }
 
 function runPhaseOneSelfTests() {
@@ -2531,6 +2688,14 @@ window.addEventListener('error', event => {
 runPhaseOneSelfTests();
 loadGameSave();
 syncOptionsControls();
+const buildStampElement = document.getElementById('build-stamp');
+if (buildStampElement) {
+    const stampParts = [` · build ${window.__DUNGEONS_BUILD}`];
+    stampParts.push(window.__DUNGEONS_SAVE_BUILD ? ` · save ${window.__DUNGEONS_SAVE_BUILD}` : ' · save ?');
+    stampParts.push(saveWritesAuthorized ? ' · storage OK' : ' · storage FAIL');
+    stampParts.push(` · saved levers ${getPersistedLeversCount()}`);
+    buildStampElement.textContent = stampParts.join('');
+}
 const startupPlayButton = document.getElementById('btn-continue');
 if (startupPlayButton) startupPlayButton.disabled = false;
 
@@ -2548,3 +2713,16 @@ startDailyChallengeFromUrl();
 loop();
 window.__dungeonsEngineReady = true;
 window.dispatchEvent(new Event('dungeons:engine-ready'));
+
+window.addEventListener('error', (e) => {
+    console.error('Erreur non capturee:', e.error || e.message);
+    if (typeof reportRuntimeError === 'function') {
+        reportRuntimeError(e.error || new Error(e.message), 'Global');
+    }
+});
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('Promesse rejetee non capturee:', e.reason);
+    if (typeof reportRuntimeError === 'function') {
+        reportRuntimeError(e.reason, 'Promise');
+    }
+});

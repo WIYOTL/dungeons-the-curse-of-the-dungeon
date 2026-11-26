@@ -1,4 +1,18 @@
+window.__DUNGEONS_SAVE_BUILD = 'save6-levers';
 let saveWritesAuthorized = false;
+function getPersistedLeversCount() {
+    try {
+        const raw = localStorage.getItem('dungeonsSave');
+        if (!raw) return 0;
+        const save = JSON.parse(raw);
+        if (!save || typeof save !== 'object') return 0;
+        const keys = Array.isArray(save.activatedLeverKeys) ? save.activatedLeverKeys.length : 0;
+        const count = Number.isInteger(save.leversActivated) && save.leversActivated >= 0 ? save.leversActivated : 0;
+        return Math.max(keys, count);
+    } catch (error) {
+        return 0;
+    }
+}
 function readSaveData(key = "dungeonsSave") {
     try {
         return localStorage.getItem(key);
@@ -93,12 +107,12 @@ function normalizePhase3Data(save) {
             Math.max(BASE_PLAYER_HP, Math.round(baseMaxHp * build.hp + shopHealthBonus)));
         player.hp = Math.min(player.maxHp, Math.round(player.maxHp * healthRatio));
         const baseDefense = player.defense - (player._buildDefenseBonus || 0) - (player._shopDefenseBonus || 0);
-        player.defense = Math.max(0, Math.min(MAX_PLAYER_DEFENSE, baseDefense + build.defense + (player._shopDefenseBonus || 0)));
+        player.defense = Math.max(0.1, Math.min(MAX_PLAYER_DEFENSE, baseDefense + build.defense + (player._shopDefenseBonus || 0)));
         const baseAttackDamage = (player.attackDamage - (player._shopDamageBonus || 0)) / (player._buildDamageMultiplier || 1);
         player.attackDamage = Math.max(1, Math.min(MAX_PLAYER_ATTACK_DAMAGE,
             baseAttackDamage * build.damage + (player._shopDamageBonus || 0)));
         const baseSpeed = (player.speed - (player._shopSpeedBonus || 0)) / (player._buildSpeedMultiplier || 1);
-        player.speed = Math.min(MAX_PLAYER_SPEED, Math.max(.1, baseSpeed * build.speed + (player._shopSpeedBonus || 0)));
+        player.speed = Math.min(MAX_PLAYER_SPEED, Math.max(0.1, baseSpeed * build.speed + (player._shopSpeedBonus || 0)));
         player.attackRange = 60 * (selectedBuild === 'ranger' ? 1.25 : 1);
         player._buildHpMultiplier = build.hp;
         player._buildDefenseBonus = build.defense;
@@ -133,12 +147,25 @@ function normalizePhase3Data(save) {
 
     function receiveDamage(baseDamage) {
         const damage = getIncomingDamage(baseDamage);
+        if (selectedBuild === 'paladin' && getLevelRandom() < 0.25) {
+            spawnDamageText(player.x, player.y - player.radius - 10, window.t('BLOQUÉ'), '#66fcf1');
+            playCue('parry');
+            return 0;
+        }
         player.hp -= damage;
         phase3Stats.damageTaken += damage;
         return damage;
     }
 
-    function dailySeed(date = new Date().toISOString().slice(0, 10)) {
+    function getLocalDateString() {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function dailySeed(date = getLocalDateString()) {
         let hash = 2166136261;
         for (let i = 0; i < date.length; i++) hash = Math.imul(hash ^ date.charCodeAt(i), 16777619);
         return Math.abs(hash >>> 0);
@@ -206,7 +233,7 @@ function normalizePhase3Data(save) {
     }
 
     async function copyDailyChallengeCode() {
-        const date = dailyChallenge ? dailyChallenge.date : new Date().toISOString().slice(0, 10);
+        const date = dailyChallenge ? dailyChallenge.date : getLocalDateString();
         const seed = dailyChallenge ? dailyChallenge.seed : dailySeed(date);
         const code = formatChallengeCode(date, seed);
         const input = document.getElementById('challenge-code-input');
@@ -282,7 +309,7 @@ function normalizePhase3Data(save) {
     function startDailyChallenge(seedOverride = null, dateOverride = null) {
         clearChallengeRuntimeState({ keepChallengeConfig: true });
         newGamePlusRunActive = false;
-        const date = dateOverride || new Date().toISOString().slice(0, 10);
+        const date = dateOverride || getLocalDateString();
         const seed = seedOverride === null ? dailySeed(date) : seedOverride;
         const code = typeof date === 'string' ? formatChallengeCode(date, seed) : '';
         if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff || !parseChallengeCode(code)) {
@@ -518,6 +545,10 @@ function normalizePhase3Data(save) {
         }
         if (id === 'speed-run') {
             runTimerRemaining = enabled ? SPEED_RUN_LIMIT_SECONDS : null;
+            if (enabled) {
+                runTimerStartTime = performance.now();
+                runTimerPausedDuration = 0;
+            }
             updateRunTimerDisplay();
         }
         saveGame(true);
@@ -580,6 +611,9 @@ function normalizePhase3Data(save) {
         const bestiaryTypes = Object.keys(BESTIARY_DEFINITIONS);
         const bestiaryTotal = bestiaryTypes.reduce((total, type) => total + (bestiary[type] || 0), 0);
         if (phase3Kills) phase3Kills.textContent = bestiaryTotal;
+        const phase3Levers = document.getElementById('phase3-levers');
+        const leversTotal = Math.max(getUniqueLeversActivated(), getPersistedLeversCount());
+        if (phase3Levers) phase3Levers.textContent = `${Math.min(leversTotal, 10)} / 10`;
         const perks = document.getElementById('build-perks');
         if (perks) perks.innerHTML = (BUILD_DEFINITIONS[selectedBuild].perks || []).map(perk => `<span class="phase3-pill">${window.t(perk)}</span>`).join('');
         const challenges = document.getElementById('challenge-list');
@@ -619,7 +653,7 @@ function normalizePhase3Data(save) {
             }));
         }
         const stats = document.getElementById('advanced-stats');
-        if (stats) stats.innerHTML = `<table class="phase3-table"><tr><td>Parties / victoires</td><td>${phase3Stats.runs} / ${phase3Stats.victories}</td></tr><tr><td>Temps total joué</td><td>${formatPlayTime(phase3Stats.playSeconds)}</td></tr><tr><td>Meilleur score</td><td>${Math.floor(phase3Stats.bestScore)}</td></tr><tr><td>Dégâts infligés / reçus</td><td>${Math.floor(phase3Stats.damageDealt)} / ${Math.floor(phase3Stats.damageTaken)}</td></tr><tr><td>Défi quotidien / Boss-Rush</td><td>${phase3Stats.dailyWins} / ${phase3Stats.bossRushWins}</td></tr></table>`;
+        if (stats) stats.innerHTML = `<table class="phase3-table"><tr><td>Parties / victoires</td><td>${phase3Stats.runs} / ${phase3Stats.victories}</td></tr><tr><td>Temps total joué</td><td>${formatPlayTime(phase3Stats.playSeconds)}</td></tr><tr><td>Meilleur score</td><td>${Math.floor(phase3Stats.bestScore)}</td></tr><tr><td>Dégâts infligés / reçus</td><td>${Math.floor(phase3Stats.damageDealt)} / ${Math.floor(phase3Stats.damageTaken)}</td></tr><tr><td>Défi quotidien / Boss-Rush</td><td>${phase3Stats.dailyWins} / ${phase3Stats.bossRushWins}</td></tr><tr><td>${window.t('Leviers activés')}</td><td>${Math.min(Math.max(getUniqueLeversActivated(), getPersistedLeversCount()), 10)} / 10</td></tr></table>`;
         const status = document.getElementById('challenge-status');
         if (status) {
             status.textContent = activeChallenge === 'daily' && dailyChallenge
@@ -811,8 +845,8 @@ function normalizePhase3Data(save) {
 
         const build = BUILD_DEFINITIONS[save.selectedBuild] || BUILD_DEFINITIONS.vanguard;
         const buildModifiers = save.buildModifiers;
-        if (buildModifiers !== undefined) {
-            if (!buildModifiers || typeof buildModifiers !== 'object' || Array.isArray(buildModifiers)) return false;
+        if (buildModifiers !== undefined && buildModifiers !== null) {
+            if (typeof buildModifiers !== 'object' || Array.isArray(buildModifiers)) return false;
             const buildRange = key => {
                 const values = Object.values(BUILD_DEFINITIONS)
                     .map(buildDefinition => buildDefinition[key])
@@ -820,13 +854,12 @@ function normalizePhase3Data(save) {
                 return [Math.min(...values), Math.max(...values)];
             };
             for (const key of ['hp', 'defense', 'damage', 'speed', 'dashSpeed']) {
-                const [min, max] = buildRange(key);
-                if (!optionalInRange(buildModifiers, key, min, max)) return false;
+                if (!optionalInRange(buildModifiers, key, ...buildRange(key))) return false;
             }
         }
         const shopUpgrades = save.shopUpgrades;
-        if (shopUpgrades !== undefined) {
-            if (!shopUpgrades || typeof shopUpgrades !== 'object' || Array.isArray(shopUpgrades)
+        if (shopUpgrades !== undefined && shopUpgrades !== null) {
+            if (typeof shopUpgrades !== 'object' || Array.isArray(shopUpgrades)
                 || !optionalInRange(shopUpgrades, 'health', 0)
                 || !optionalInRange(shopUpgrades, 'defense', 0, 0.95)
                 || !optionalInRange(shopUpgrades, 'damage', 0)
@@ -1114,7 +1147,8 @@ function buildSaveData() {
         completedBuilds,
         completedDifficulties,
         buildMaxedStats,
-        leversActivated,
+        leversActivated: getUniqueLeversActivated(),
+        activatedLeverKeys: [...activatedLeverKeys],
 
         maxUnlockedWorld,
         maxUnlockedLevel,
@@ -1186,10 +1220,11 @@ function saveGame(force = false) {
 function authorizeFreshRunSave() {
     if (saveWritesAuthorized) return true;
     try {
-        if (localStorage.getItem('dungeonsSave') === null) {
-            saveWritesAuthorized = true;
-            return true;
-        }
+        const testKey = 'dungeonsStorageTest';
+        localStorage.setItem(testKey, '1');
+        localStorage.removeItem(testKey);
+        saveWritesAuthorized = true;
+        return true;
     } catch (error) {
         console.warn('Impossible de vérifier le stockage avant le démarrage de la partie :', error);
     }
@@ -1208,10 +1243,11 @@ function migrateSaveData(save) {
 function loadGameSave() {
     saveWritesAuthorized = false;
     loadSettings();
+    // Autoriser l'écriture si le stockage fonctionne, même si le chargement échoue
+    authorizeFreshRunSave();
     const data = readSaveData();
     if (data === null) {
         applyBuildStats();
-        saveWritesAuthorized = true;
         return false;
     }
 
@@ -1389,7 +1425,7 @@ function loadGameSave() {
         migratedBossMission.current = Math.min(migratedBossMission.target, defeatedBosses.length);
         migratedBossMission.completed = migratedBossMission.current >= migratedBossMission.target;
     }
-    player.defense = Number.isFinite(save.defense) ? Math.max(0, Math.min(MAX_PLAYER_DEFENSE, save.defense)) : 0;
+    player.defense = Number.isFinite(save.defense) ? Math.max(0.1, Math.min(MAX_PLAYER_DEFENSE, save.defense)) : 0.1;
     player.attackDamage = Number.isFinite(save.attackDamage)
         ? Math.max(1, Math.min(MAX_PLAYER_ATTACK_DAMAGE, save.attackDamage)) : 22;
     player.maxHp = Number.isFinite(save.maxHp)
@@ -1424,7 +1460,13 @@ function loadGameSave() {
     buildMaxedStats = save.buildMaxedStats && typeof save.buildMaxedStats === 'object' && !Array.isArray(save.buildMaxedStats)
         ? save.buildMaxedStats
         : {};
-    leversActivated = Number.isInteger(save.leversActivated) && save.leversActivated >= 0 ? save.leversActivated : 0;
+    activatedLeverKeys = Array.isArray(save.activatedLeverKeys)
+        ? save.activatedLeverKeys.filter(key => typeof key === 'string' && key.length <= 16)
+        : [];
+    leversActivated = Math.max(
+        Number.isInteger(save.leversActivated) && save.leversActivated >= 0 ? save.leversActivated : 0,
+        activatedLeverKeys.length
+    );
     if (hasBuildModifiers) {
         applyBuildStats();
     } else {
@@ -1512,10 +1554,6 @@ function buyHealthUpgrade() {
     saveGame(true);
 
     showNotification(window.t("PV augmentés !"));
-}
-
-function buyDamageUpgrade() {
-    buyAttackUpgrade();
 }
 
 function buySpeedUpgrade() {
@@ -1653,7 +1691,7 @@ function buySkin(name, price) {
 function buyShopPower(productId, price, collection, powerId, message) {
     if (!['abilities', 'relics'].includes(collection)) return;
     if (purchasedProducts[productId] || player[collection].includes(powerId)) {
-        showNotification(window.t("Cet artefact est deja acquis !"));
+        showNotification(window.t("Cet artefact est déjà acquis !"));
         return;
     }
     if (player.gold < price) {
@@ -1695,6 +1733,8 @@ function returnToTitle() {
     pendingBossReward = null;
     bossRewardShown = false;
     runTimerRemaining = null;
+    runTimerStartTime = null;
+    runTimerPausedDuration = 0;
     currentLevelChallengeSnapshot = [];
     saveGame(true);
     renderPhase3();

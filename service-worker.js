@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dungeons-shell-v4';
+const CACHE_NAME = 'dungeons-shell-v8';
 const BASE_URL = new URL('./', self.location.href);
 const APP_ASSETS = [
     'index.html',
@@ -48,5 +48,16 @@ self.addEventListener('fetch', event => {
                 || Response.error())));
         return;
     }
-    event.respondWith(caches.match(request).then(cached => cached || fetch(request)));
+    // Réseau d'abord pour les scripts : en cache-first, un iPhone déjà venu continuait
+    // d'exécuter l'ancien JS (compteur de leviers resté à 0/10) même après mise à jour.
+    // Le cache ne sert qu'en secours hors ligne, et chaque réponse réseau rafraîchit le cache.
+    event.respondWith(fetch(request)
+        .then(response => {
+            if (response && response.ok) {
+                const copy = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+            }
+            return response;
+        })
+        .catch(async () => (await caches.match(request) || Response.error())));
 });

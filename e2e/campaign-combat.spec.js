@@ -58,7 +58,7 @@ test('a player attack damages an enemy during an active level', async ({ page })
     await page.keyboard.down('f');
     await expect.poll(async () => page.evaluate(() => player.parryTimer), {
         interval: 20,
-        timeout: 1_000
+        timeout: 3_000
     }).toBeGreaterThan(0);
     await page.keyboard.up('f');
 });

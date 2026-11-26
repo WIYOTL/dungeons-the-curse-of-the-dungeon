@@ -28,6 +28,8 @@
     }
 
     window.openTutorial = () => {
+        // Ne pas afficher le tutoriel pendant une partie en cours
+        if (document.body.classList.contains('game-playing')) return;
         currentStep = 0;
         previousFocus = document.activeElement;
         renderStep();

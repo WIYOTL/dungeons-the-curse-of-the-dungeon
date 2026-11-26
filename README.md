@@ -1,6 +1,6 @@
 # Dungeons: The Curse of the Dungeon <sup>WEB Edition</sup>
 
-**Français** · [English](README_en.md) · **Version 1.1.0**
+**Français** · [English](README_en.md) · **Version 1.1.2**
 
 > **Entrez dans le donjon. Brisez la malédiction.**<br>
 > Un jeu d’action fantastique jouable dans votre navigateur, sur ordinateur comme sur mobile.
@@ -35,16 +35,16 @@ Explorez **3 mondes et 21 niveaux**, affrontez leurs gardiens et cherchez les **
 - **Une campagne complète** avec niveaux, ennemis, boss et progression sauvegardée.
 - **Un combat d’action** : attaques, esquives rapides, parades et interactions.
 - **Une interface en français et en anglais**, sélectionnée selon la langue du navigateur et modifiable à tout moment.
-- **Trois archétypes** — Vanguard, Duelist et Ranger — pour varier votre façon de jouer.
+- **Quatre archétypes** — Vanguard, Duelist, Ranger et Paladin — pour varier votre façon de jouer.
 - **Des améliorations et une boutique** pour faire évoluer votre progression.
 - **Des défis quotidiens à seed partageable** : invitez vos amis à tenter la même configuration.
 - **Le mode sans fin et ses objectifs de maîtrise**, puis **New Game+** après la campagne.
 - **Tutoriel interactif** et options d’accessibilité : contraste renforcé, texte agrandi et animations réduites.
-- **Suivi de complétion** pour vous aider à poursuivre le 100 % : campagne, secrets, missions et bestiaire.
+- **Suivi de complétion** pour vous aider à poursuivre le 100 % : campagne, missions, salles secrètes, bestiaire, défis spéciaux, builds, difficultés et leviers.
 
 ## Jouer sur mobile
 
-Le jeu adapte son terrain à l’écran et propose un **joystick tactile**, ainsi que des boutons dédiés à l’attaque, au dash, à la parade, à l’interaction et à la pause. Le format portrait ou paysage est pris en charge.
+Le jeu adapte son terrain à l’écran et propose un **joystick tactile**, ainsi que des boutons dédiés à l’attaque, au dash, à la parade, à l’interaction et à la pause. Le format portrait ou paysage est pris en charge. Le zoom accidentel de la page pendant la partie (double-tap ou pincement sur les contrôles) est désactivé en pleine partie ; les menus restent zoomables.
 
 Sur iPhone ou iPad :
 
@@ -120,6 +120,28 @@ Pour les détails de publication ou de configuration Supabase, voir le [guide de
 
 ## Mises à jour
 
+### V1.1.2 (25 novembre 2026)
+
+- Écran noir corrigé (iPhone, macOS, Windows) : balise `</div>` manquante dans `#victory-screen` — l'interface et le canvas étaient imbriqués dans un écran masqué
+- Libellé « · MAX » des PV réservé au plafond de 300 PV (menu et HUD), aligné sur les autres statistiques
+- Compteur de leviers « Leviers X / 10 » ajouté au panneau Progression & Défis (stat en tête du panneau + ligne dans les statistiques avancées)
+- Zoom tactile accidentel corrigé en pleine partie (viewport durci, touch-action, gestes iOS bloqués, sélection de texte désactivée) ; les menus restent zoomables
+- Cache du service worker passé à v5 : les mises à jour sont désormais bien servies sur iPhone/Android (ancien cache purgé)
+- Serveur de test local avec cache désactivé (`Serveur-Test-Iphone.command`) : Safari recharge toujours la dernière version
+- Le 100 % de complétion vérifié atteignable : poids exacts, 10 leviers générés, mission récursive « Fini les missions secondaires ! » fonctionnelle
+- Timer Speed-run basé sur `performance.now()`, CSP stricte, fuseau local du défi quotidien
+- Test e2e de la parade stabilisé (fenêtre de vérification élargie)
+
+### V1.1.1 (21 novembre 2026)
+
+- Paladin "Bouclier absorbant" implémenté : 25% chance de bloquer un coup entrant
+- AudioContext resume corrigé (playUiTone, startAmbientMusic, playCue async avec await)
+- validateImportedSave assoupli pour vieilles sauvegardes (buildModifiers, shopUpgrades optionnels)
+- Séparation vector optimisé : spatial hash grid (80px cells) O(n²) → O(n)
+- runtimeError remis à null sur loadLevel() succès
+- Typos FR : "déjà", "Récupère", "Obtient", "Subit" (harmonisation 3e personne)
+- HTML : suppression div orphelin, wrapper cloud-save-section, verbes boutique harmonisés
+
 ### V1.1.0 (20 novembre 2026)
 
 - PV de départ fixés à 120 (base)
@@ -130,7 +152,7 @@ Pour les détails de publication ou de configuration Supabase, voir le [guide de
 - Badge « Collectionneur complet » quand les 19 produits de la boutique sont achetés
 - Bouton « ACQUIS » corrigé pour les artefacts permanents de la boutique
 - Section « Complétion du jeu » rendue visible dans le menu titre
-- Passage de la version 1.0.0 à 1.1.0
+- Passage de la version 1.0.0 à 1.1.1
 
 ### V1.0.0 (11 novembre 2026)
 

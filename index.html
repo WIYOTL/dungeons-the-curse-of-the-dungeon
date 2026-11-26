@@ -2,14 +2,14 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-    <title>Dungeons: The Curse of the Dungeon — Version 1.1.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>Dungeons: The Curse of the Dungeon — Version 1.1.2</title>
     <meta name="theme-color" content="#060709">
     <meta name="description" content="Explorez les donjons, relevez des défis seedés et complétez la campagne dans ce jeu d’action gratuit.">
-    <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icons/dungeon-192.png" type="image/png">
     <link rel="apple-touch-icon" href="./icons/dungeon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.supabase.co;">
     <style>
         * {
             box-sizing: border-box;
@@ -375,7 +375,88 @@
         }
 
         /* Aucun ecran de menu ne doit pouvoir recouvrir le terrain pendant une partie. */
-        body.game-playing .overlay-screen {
+        body.game-playing .overlay-screen:not(#error-modal) {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            z-index: -1 !important;
+        }
+
+        /* Error Modal Dialog */
+        #error-modal {
+            z-index: 10000;
+        }
+        #error-modal .error-modal-panel {
+            background: linear-gradient(145deg, #1a0d0d 0%, #0d0505 100%);
+            border: 3px solid #c00;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: min(90vw, 560px);
+            width: 100%;
+            box-shadow:
+                0 0 40px rgba(204, 0, 0, 0.6),
+                0 0 80px rgba(204, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 100, 100, 0.2);
+            animation: error-modal-in 0.3s ease-out;
+        }
+        @keyframes error-modal-in {
+            from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .error-modal-title {
+            color: #ff4444;
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin: 0 0 16px;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+        }
+        .error-modal-content {
+            color: #ffcccc;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            text-align: center;
+            word-wrap: break-word;
+        }
+        .error-modal-details {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #550000;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .error-modal-details summary {
+            color: #ff8888;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .error-modal-details pre {
+            color: #ffaaaa;
+            font-size: 0.75rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 12px;
+            margin: 0;
+            max-height: 200px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .error-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .error-modal-actions .btn-ui {
+            min-width: 140px;
+        }
+
+        /* Le terrain doit rester au-dessus de tout fond de menu pendant le jeu. */
+        body.game-playing .overlay-screen:not(#error-modal) {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
@@ -389,11 +470,15 @@
             z-index: 4000 !important;
             visibility: visible !important;
             opacity: 1 !important;
+            background: #060709;
+            min-width: 320px;
+            min-height: 240px;
         }
 
         body.game-playing #gameCanvas {
             visibility: visible !important;
             opacity: 1 !important;
+            background: #060709;
         }
 
         /* TITLE SCREEN */
@@ -1559,8 +1644,8 @@
             }
             h1 { font-size: 1.4rem; }
             #ui, #boss-ui-container { width: min(100%, 820px); flex-wrap: wrap; gap: 8px; }
-            .canvas-wrapper { width: 100%; overflow: auto; }
-            canvas { max-width: 100%; height: auto; }
+            .canvas-wrapper { width: 100%; height: auto; aspect-ratio: 4/3; overflow: auto; }
+            canvas { max-width: 100%; height: 100%; }
             .title-hero { font-size: clamp(2.5rem, 13vw, 5.2rem); letter-spacing: 5px; }
             .world-select-panel, .shop-panel { width: min(100%, 660px); }
             .options-panel { padding: 20px 16px; max-height: 88vh; }
@@ -3007,11 +3092,20 @@
             min-height: 100dvh;
             overflow: hidden;
             overscroll-behavior: none;
+            justify-content: flex-start;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
 
         body.game-playing .canvas-wrapper {
             width: min(100%, 800px);
+            height: auto;
+            aspect-ratio: 4/3;
             overflow: hidden;
+            min-width: 320px;
+            min-height: 240px;
+            touch-action: none;
         }
 
         body.game-playing #gameCanvas {
@@ -3019,6 +3113,17 @@
             width: min(100%, 800px);
             height: auto;
             aspect-ratio: 4 / 3;
+            touch-action: none;
+        }
+
+        /* Anti-zoom tactile : pas de double-tap/pincement sur les surfaces de jeu */
+        body.game-playing h1,
+        body.game-playing #ui,
+        body.game-playing #boss-ui-container,
+        body.game-playing #controls-info,
+        body.game-playing #fps-counter,
+        body.game-playing #notification-banner {
+            touch-action: manipulation;
         }
 
         body.game-playing.mobile-touch-enabled {
@@ -3063,7 +3168,6 @@
             body.game-playing.mobile-touch-enabled .touch-controls {
                 inset-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
             }
-        }
         }
 
         @media (max-height: 520px) {
@@ -3362,13 +3466,12 @@
             }
 
             body.game-playing .canvas-wrapper {
-                display: grid;
-                place-items: center;
+                display: block;
                 flex: 1 1 0;
                 width: min(100%, 800px);
-                min-width: 0;
-                min-height: 0;
+                aspect-ratio: 4/3;
                 overflow: hidden;
+                margin: auto;
             }
 
             body.game-playing #gameCanvas {
@@ -3623,7 +3726,8 @@
                 display: block;
                 flex: 1 1 0;
                 width: 100%;
-                height: 0;
+                height: auto;
+                aspect-ratio: 4/3;
                 min-width: 0;
                 min-height: 0;
                 margin: 0;
@@ -3758,7 +3862,7 @@
                     <option value="en">English</option>
                 </select>
             </label>
-            <div class="title-edition"><span>WEB EDITION</span><span>VER. 1.1.0</span></div>
+            <div class="title-edition"><span>WEB EDITION</span><span>VER. 1.1.2</span></div>
             <div class="title-legal-note">Wiyotl est une marque déposée.<br>Tous droits réservés.</div>
             <nav class="title-legal-links" aria-label="Informations et assistance">
                 <a href="./privacy.html">Confidentialité</a>
@@ -3864,7 +3968,7 @@
                         <button class="btn-ui" onclick="saveFromOptions()">SAUVEGARDER MAINTENANT</button>
                         <button class="btn-ui" onclick="confirmResetSave()">RÉINITIALISER LA SAUVEGARDE</button>
                     </div>
-                    <h3>☁️ SAUVEGARDE CLOUD</h3>
+                    <div id="cloud-save-section"><h3>☁️ SAUVEGARDE CLOUD</h3>
                     <p id="cloud-save-status" aria-live="polite">Non connecté. Configurez Supabase pour activer la synchronisation.</p>
                     <label for="cloud-email">E-mail</label>
                     <input id="cloud-email" type="email" autocomplete="email" placeholder="vous@exemple.fr">
@@ -3877,13 +3981,13 @@
                         <button class="btn-ui" onclick="cloudUploadSave()">ENVOYER LA SAUVEGARDE LOCALE</button>
                         <button class="btn-ui" onclick="cloudDownloadSave()">CHARGER LA SAUVEGARDE CLOUD</button>
                     </div>
-                    <small>Le chargement cloud remplace la progression locale après validation. Aucun écrasement automatique.</small>
+                    <small>Le chargement cloud remplace la progression locale après validation. Aucun écrasement automatique.</small></div>
                 </section>
 
                 <section class="options-card">
                     <h3>📊 INFORMATIONS</h3>
                     <div class="options-info">
-                        <div>Dungeons : The Curse of The Dungeon <span>Version 1.1.0</span></div>
+                        <div>Dungeons : The Curse of The Dungeon <span>Version 1.1.2<span id="build-stamp"></span></span></div>
                         <div>Développeur <span>Wiyotl</span></div>
                         <div>Mondes <span>3</span></div>
                         <div>Niveaux <span>21</span></div>
@@ -3982,9 +4086,9 @@
 <div class="shop-item-card"><div class="shop-item-icon">🧛</div><div class="shop-item-content"><strong>Vampirisme</strong><small>Soins sur coup critique · 550 🪙</small></div><button class="btn-ui" data-product-id="ability-vampirism" data-price="550" onclick="buyShopPower('ability-vampirism',550,'abilities','vampirism','Vampirisme activé !')">ACHETER</button></div>
                     <div class="shop-item-card"><div class="shop-item-icon">❄️</div><div class="shop-item-content"><strong>Relique de givre</strong><small>Les attaques ralentissent les ennemis · 550 🪙</small></div><button class="btn-ui" data-product-id="relic-frost" data-price="550" onclick="buyShopPower('relic-frost',550,'relics','frost','Relique de givre activée !')">ACHETER</button></div>
                     <div class="shop-item-card"><div class="shop-item-icon">🧿</div><div class="shop-item-content"><strong>Égide protectrice</strong><small>Réduit les dégâts des pièges · 600 🪙</small></div><button class="btn-ui" data-product-id="relic-ward" data-price="600" onclick="buyShopPower('relic-ward',600,'relics','ward','Égide protectrice activée !')">ACHETER</button></div>
-                    <div class="shop-item-card"><div class="shop-item-icon">🩸</div><div class="shop-item-content"><strong>Relique sanguinaire</strong><small>Récupérez 4% des dégâts infligés en PV · 700 🪙</small></div><button class="btn-ui" data-product-id="relic-leech" data-price="700" onclick="buyShopPower('relic-leech',700,'relics','leech','Relique sanguinaire activée !')">ACHETER</button></div>
-                    <div class="shop-item-card"><div class="shop-item-icon">🪙</div><div class="shop-item-content"><strong>Idole dorée</strong><small>Obtenez 25% d’or supplémentaire · 650 🪙</small></div><button class="btn-ui" data-product-id="relic-fortune" data-price="650" onclick="buyShopPower('relic-fortune',650,'relics','fortune','Idole dorée activée !')">ACHETER</button></div>
-                    <div class="shop-item-card"><div class="shop-item-icon">🪨</div><div class="shop-item-content"><strong>Cœur de pierre</strong><small>Subissez 10% de dégâts en moins · 800 🪙</small></div><button class="btn-ui" data-product-id="relic-shell" data-price="800" onclick="buyShopPower('relic-shell',800,'relics','shell','Cœur de pierre activé !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🩸</div><div class="shop-item-content"><strong>Relique sanguinaire</strong><small>Récupère 4% des dégâts infligés en PV · 700 🪙</small></div><button class="btn-ui" data-product-id="relic-leech" data-price="700" onclick="buyShopPower('relic-leech',700,'relics','leech','Relique sanguinaire activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🪙</div><div class="shop-item-content"><strong>Idole dorée</strong><small>Obtient 25% d’or supplémentaire · 650 🪙</small></div><button class="btn-ui" data-product-id="relic-fortune" data-price="650" onclick="buyShopPower('relic-fortune',650,'relics','fortune','Idole dorée activée !')">ACHETER</button></div>
+                    <div class="shop-item-card"><div class="shop-item-icon">🪨</div><div class="shop-item-content"><strong>Cœur de pierre</strong><small>Subit 10% de dégâts en moins · 800 🪙</small></div><button class="btn-ui" data-product-id="relic-shell" data-price="800" onclick="buyShopPower('relic-shell',800,'relics','shell','Cœur de pierre activé !')">ACHETER</button></div>
                 </div>
             </div>
             <div class="shop-footer">
@@ -4141,8 +4245,8 @@
                 </div>
                 <div class="stat-row">
                     <span>🪙 Or total</span>
-                <span id="victory-gold">0</span>
-            </div>
+                    <span id="victory-gold">0</span>
+                </div>
             <div class="stat-row">
                 <span>🏆 Score final</span>
                 <span id="victory-score">0</span>
@@ -4170,7 +4274,7 @@
             </button>
         </div>
     </div>
-    </div>
+</div>
 
     <div id="credits-screen" class="overlay-screen hidden">
         <div class="credits-panel">
@@ -4242,7 +4346,6 @@
             <button type="button" data-touch-action="pause" aria-label="Mettre en pause">Ⅱ<span>PAUSE</span></button>
         </div>
     </div>
-
     <div id="phase3-screen" class="overlay-screen hidden">
         <div class="phase3-panel">
             <h2 class="options-title">⚔ PROGRESSION & DÉFIS</h2>
@@ -4251,6 +4354,7 @@
                 <div class="phase3-stat"><strong id="phase3-victories">0</strong><span>Victoires</span></div>
                 <div class="phase3-stat"><strong id="phase3-score">0</strong><span>Meilleur score</span></div>
                 <div class="phase3-stat"><strong id="phase3-kills">0</strong><span>Ennemis vaincus</span></div>
+                <div class="phase3-stat"><strong id="phase3-levers">0 / 10</strong><span>Leviers</span></div>
                 <div class="phase3-stat"><strong id="phase3-ngplus">0</strong><span>Cycle New Game+</span></div>
                 <div class="phase3-stat"><strong id="phase3-play-time">0 min 00 s</strong><span>Temps total joué</span></div>
             </div>
@@ -4327,6 +4431,24 @@
         </div>
     </div>
 
+    <!-- Error Modal Dialog -->
+    <div id="error-modal" class="overlay-screen hidden" role="alertdialog" aria-modal="true" aria-labelledby="error-modal-title">
+        <div class="error-modal-panel">
+            <h2 id="error-modal-title" class="error-modal-title">⚠ Erreur</h2>
+            <div class="error-modal-content">
+                <p id="error-modal-message"></p>
+                <details class="error-modal-details">
+                    <summary>Détails techniques</summary>
+                    <pre id="error-modal-details"></pre>
+                </details>
+            </div>
+            <div class="error-modal-actions">
+                <button class="btn-ui" onclick="closeErrorModal()">FERMER</button>
+                <button class="btn-ui" onclick="copyErrorToClipboard()">COPIER L'ERREUR</button>
+            </div>
+        </div>
+    </div>
+
 <script src="js/i18n.js"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/loading-screen.js"></script>
@@ -4338,6 +4460,13 @@
 <script src="js/cloud-save.js"></script>
 <script src="js/onboarding.js"></script>
 <script src="js/pwa.js"></script>
-
+<script>
+    if (location.protocol === 'http:' || location.protocol === 'https:') {
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = './manifest.webmanifest';
+        document.head.appendChild(link);
+    }
+</script>
 </body>
 </html>

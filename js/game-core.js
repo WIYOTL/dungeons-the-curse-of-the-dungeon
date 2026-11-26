@@ -35,7 +35,7 @@ const BUILD_DEFINITIONS = {
     vanguard: { label: 'Vanguard', perks: ['+10% défense'], hp: 1, defense: .1, damage: .95, speed: .95, dashSpeed: 1 },
     duelist: { label: 'Duelist', perks: ['+18% dégâts', 'dash plus rapide'], hp: .95, defense: 0, damage: 1.18, speed: 1.08, dashSpeed: 1.2 },
     ranger: { label: 'Ranger', perks: ['+25% portée', '+8% vitesse'], hp: .95, defense: 0, damage: 1.05, speed: 1.08, dashSpeed: 1 },
-    paladin: { label: 'Paladin', perks: ['Bouclier absorbant', 'Soin par parade'], hp: 1.05, defense: 0.05, damage: 1.0, speed: 1.0, dashSpeed: 0.9 }
+    paladin: { label: 'Paladin', perks: ['Bouclier absorbant (25% chance de bloquer un coup)', 'Soin par parade'], hp: 1.05, defense: 0.05, damage: 1.0, speed: 1.0, dashSpeed: 0.9 }
 };
 const SPEED_RUN_LIMIT_SECONDS = 150;
 
@@ -244,6 +244,8 @@ let currentLevelIndex = 0;
 let score = 0;
 let gameTime = 0;
 let runTimerRemaining = null;
+let runTimerStartTime = null;
+let runTimerPausedDuration = 0;
 let portalNotificationShown = false;
 let shiftWasDown = false;
 let interactWasDown = false;
@@ -327,6 +329,12 @@ let completedBuilds = [];
 let completedDifficulties = [];
 let buildMaxedStats = {};
 let leversActivated = 0;
+// Clés uniques "w{monde}-l{niveau}" des leviers activés : permet de reconstruire le compteur
+// même si la valeur sauvegardée est perdue, et d'ignorer les ré-activations sur niveau rejoué.
+let activatedLeverKeys = [];
+function getUniqueLeversActivated() {
+    return Math.max(leversActivated, activatedLeverKeys.length);
+}
 let completion100Notified = false;
 let challengeState = {};
 let phase3Stats = { runs: 0, victories: 0, deaths: 0, damageDealt: 0, damageTaken: 0, bestScore: 0, dailyWins: 0, bossRushWins: 0, playSeconds: 0 };
@@ -439,13 +447,15 @@ let audioContext = null;
 let ambientOscillator = null;
 let ambientGain = null;
 
-function playUiTone(frequency = 660, duration = 0.08) {
+async function playUiTone(frequency = 660, duration = 0.08) {
     if (!settings || settings.masterVolume <= 0 || settings.sfxVolume <= 0) return;
     try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return;
         if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') audioContext.resume();
+        if (audioContext.state === 'suspended') {
+            try { await audioContext.resume(); } catch (_) { /* wait for user gesture */ }
+        }
         const oscillator = audioContext.createOscillator();
         const gain = audioContext.createGain();
         const volume = (settings.masterVolume / 100) * (settings.sfxVolume / 100) * 0.08;
@@ -462,13 +472,15 @@ function playUiTone(frequency = 660, duration = 0.08) {
     }
 }
 
-function startAmbientMusic() {
+async function startAmbientMusic() {
     if (settings.musicVolume <= 0 || settings.masterVolume <= 0) return;
     try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return;
         if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') audioContext.resume();
+        if (audioContext.state === 'suspended') {
+            try { await audioContext.resume(); } catch (_) { /* wait for user gesture */ }
+        }
         if (!ambientOscillator) {
             ambientOscillator = audioContext.createOscillator();
             ambientGain = audioContext.createGain();
@@ -514,17 +526,20 @@ const audioCueProfiles = {
     bossAttack: [180, 0.22, 'square'],
     portal: [440, 0.3, 'sine'],
     secret: [880, 0.28, 'sine'],
-    reward: [660, 0.34, 'triangle']
+    reward: [660, 0.34, 'triangle'],
+    heal: [880, 0.18, 'sine']
 };
 
-function playCue(name, multiplier = 1) {
+async function playCue(name, multiplier = 1) {
     const profile = audioCueProfiles[name] || audioCueProfiles.hit;
     if (!settings || settings.masterVolume <= 0 || settings.sfxVolume <= 0) return;
     try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return;
         if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') audioContext.resume();
+        if (audioContext.state === 'suspended') {
+            try { await audioContext.resume(); } catch (_) { /* wait for user gesture */ }
+        }
         const oscillator = audioContext.createOscillator();
         const gain = audioContext.createGain();
         const now = audioContext.currentTime;
@@ -548,10 +563,10 @@ function playCue(name, multiplier = 1) {
     }
 }
 
-function playWorldCue(worldIndex, boss = false) {
+async function playWorldCue(worldIndex, boss = false) {
     const base = boss ? 120 : 260 + worldIndex * 70;
-    playUiTone(base, boss ? 0.18 : 0.08);
-    if (boss) playCue('bossPhase', 0.7);
+    await playUiTone(base, boss ? 0.18 : 0.08);
+    if (boss) await playCue('bossPhase', 0.7);
 }
 
 function stopAllAudioNodes() {
@@ -627,7 +642,7 @@ function resetCameraToPlayer() {
 function showOverlay(id) {
     const playerStatsBox = document.getElementById('player-stats-box');
     if (playerStatsBox) playerStatsBox.style.display = id === 'title-screen' ? 'flex' : 'none';
-    document.querySelectorAll('.overlay-screen').forEach(el => {
+    document.querySelectorAll('.overlay-screen:not(#error-modal)').forEach(el => {
         el.classList.add('hidden');
         el.style.display = 'none';
         el.style.pointerEvents = 'none';
@@ -682,7 +697,7 @@ function normalizeMissionTracking(source) {
     }, {});
     // Réconciliation : marquer comme acheté un produit déjà possédé mais oublié
     // dans purchasedProducts (ex. artefact obtenu par un choix de niveau avant la
-    // correction V1.1.0), afin que la mission "Le collectionneur" compte justement.
+    // correction V1.1.1), afin que la mission "Le collectionneur" compte justement.
     for (const id of COLLECTIBLE_PRODUCT_IDS) {
         if (purchasedProducts[id]) continue;
         if (id.startsWith('ability-') && Array.isArray(data.abilities) && data.abilities.includes(id.slice(8))) {
@@ -1290,6 +1305,8 @@ function clearChallengeRuntimeState({ keepChallengeConfig = true } = {}) {
     pendingBossReward = null;
     currentLevelChallengeSnapshot = [];
     runTimerRemaining = null;
+    runTimerStartTime = null;
+    runTimerPausedDuration = 0;
     updateRunTimerDisplay();
     if (!keepChallengeConfig) {
         challengeState = {
@@ -1429,6 +1446,7 @@ function resetGameData() {
     completedDifficulties = [];
     buildMaxedStats = {};
     leversActivated = 0;
+    activatedLeverKeys = [];
     completion100Notified = false;
     saveWritesAuthorized = true;
     const playButton = document.getElementById('btn-continue');
@@ -1516,6 +1534,8 @@ function resetGameData() {
     newGamePlusRunActive = false;
     bossRewardShown = false;
     runTimerRemaining = null;
+    runTimerStartTime = null;
+    runTimerPausedDuration = 0;
     clearChallengeRuntimeState({ keepChallengeConfig: true });
     resetTransientPlayerState();
     applyBuildStats();
@@ -1555,6 +1575,22 @@ function syncOptionsControls() {
     });
     updateFpsVisibility();
     applyAccessibilitySettings();
+    updateCloudSectionVisibility();
+}
+
+function updateCloudSectionVisibility() {
+    const config = window.DUNGEONS_SUPABASE_CONFIG || {};
+    const configured = Boolean(config.url && /^https:\/\/[^/]+\.supabase\.co\/?$/.test(config.url)
+        && typeof config.anonKey === 'string' && config.anonKey.length >= 20);
+    const section = document.getElementById('cloud-save-section');
+    if (section) {
+        section.hidden = !configured;
+        section.style.display = configured ? '' : 'none';
+    }
+    const status = document.getElementById('cloud-save-status');
+    if (status && !configured) {
+        status.textContent = window.t('Non connecté. Configurez Supabase pour activer la synchronisation.');
+    }
 }
 
 function updateAudioSetting(key, value) {
@@ -1588,12 +1624,13 @@ function updateFpsVisibility() {
 }
 
 function saveFromOptions() {
+    authorizeFreshRunSave();
     if (saveSettings() && saveGame(true)) {
         updateMissionByEvent('save');
         saveGame(true);
         showNotification(window.t('Sauvegarde effectuée !'));
     } else {
-        showNotification(window.t('Impossible de sauvegarder.'));
+        showNotification(window.t('Impossible de sauvegarder : stockage indisponible (mode privé ?).'));
     }
 }
 
@@ -1630,7 +1667,7 @@ function showNotification(text, duration = 4500) {
 
 function spawnDamageText(x, y, value, color) {
     if (!settings.showDamage) return;
-    damageTexts.push({ x, y, value: Math.floor(value), color, alpha: 1, life: 36 });
+    damageTexts.push({ x, y, value: typeof value === 'string' ? value : Math.floor(value), color, alpha: 1, life: 36 });
 }
 
 function isLevelUnlocked(wIdx, lIdx) {
@@ -1707,6 +1744,18 @@ function enterPlayingState() {
     startAmbientMusic();
     document.body.classList.add('game-playing');
     hideAllOverlays();
+    // Force hide any potential overlays that might cover the game
+    const tutorialDialog = document.getElementById('tutorial-dialog');
+    if (tutorialDialog) {
+        tutorialDialog.hidden = true;
+        tutorialDialog.style.display = 'none';
+    }
+    const loadingScreen = document.getElementById('app-loading-screen');
+    if (loadingScreen) {
+        loadingScreen.remove();
+    }
+    // Ensure error modal is hidden during gameplay
+    closeErrorModal();
     canvas.style.visibility = 'visible';
     canvas.style.opacity = '1';
     const wrapper = document.querySelector('.canvas-wrapper');
@@ -1714,6 +1763,10 @@ function enterPlayingState() {
         wrapper.style.visibility = 'visible';
         wrapper.style.opacity = '1';
         wrapper.style.zIndex = '4000';
+    }
+    // Ensure canvas is properly sized on mobile after layout
+    if (typeof resizeMobileGameCanvas === 'function') {
+        requestAnimationFrame(() => resizeMobileGameCanvas());
     }
 }
 
@@ -1896,7 +1949,7 @@ function getGameCompletionPercent() {
         + (completedSpecialChallenges / SPECIAL_CHALLENGE_COUNT * GAME_COMPLETION_WEIGHTS.specialChallenges)
         + (Object.keys(BUILD_DEFINITIONS).length ? completedBuildCount / Object.keys(BUILD_DEFINITIONS).length * GAME_COMPLETION_WEIGHTS.builds : 0)
         + (Object.keys(DIFFICULTY_MODES).length ? completedDifficultyCount / Object.keys(DIFFICULTY_MODES).length * GAME_COMPLETION_WEIGHTS.difficulties : 0)
-        + (leversTarget ? leversActivated / leversTarget * GAME_COMPLETION_WEIGHTS.levers : 0)
+        + (leversTarget ? getUniqueLeversActivated() / leversTarget * GAME_COMPLETION_WEIGHTS.levers : 0)
         + (Object.keys(BUILD_DEFINITIONS).length ? completedMaxedBuildCount / Object.keys(BUILD_DEFINITIONS).length * GAME_COMPLETION_WEIGHTS.maxedStats : 0);
 
     return Math.min(100, Math.round(weightedPercent * 10) / 10);

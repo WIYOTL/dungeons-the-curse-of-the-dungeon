@@ -136,5 +136,7 @@
     window.addEventListener('dungeons:engine-ready', () => markReady('engine-ready'), { once: true });
     window.addEventListener('dungeons:first-frame', () => markReady('first-frame'), { once: true });
     window.requestAnimationFrame(() => markReady('screen-painted'));
+    // Fallback: force screen-painted if rAF doesn't fire (e.g., background tab)
+    window.setTimeout(() => markReady('screen-painted'), 3000);
     setProgress(0);
 })();

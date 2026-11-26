@@ -1,6 +1,6 @@
 # Dungeons: The Curse of the Dungeon <sup>WEB Edition</sup>
 
-[Français](README.md) · **English** · **Version 1.1.0**
+[Français](README.md) · **English** · **Version 1.1.2**
 
 > **Enter the dungeon. Break the curse.**<br>
 > A fantasy action game you can play in your browser on desktop or mobile.
@@ -35,16 +35,16 @@ Explore **3 worlds and 21 levels**, face their guardians, and uncover **7 secret
 - **A full campaign** with levels, enemies, bosses, and persistent progression.
 - **Action combat** with attacks, quick dashes, parries, and interactions.
 - **A French and English interface**, selected from your browser language and changeable at any time.
-- **Three hero archetypes** — Vanguard, Duelist, and Ranger — for different play styles.
+- **Four hero archetypes** — Vanguard, Duelist, Ranger, and Paladin — for different play styles.
 - **Upgrades and a shop** to shape your progression.
 - **Shareable seeded daily challenges**: invite friends to tackle the same setup.
 - **Endless mode and mastery goals**, followed by **New Game+** after the campaign.
 - An **interactive tutorial** and accessibility options: high contrast, larger text, and reduced motion.
-- **Completion tracking** to guide your 100% run across the campaign, secrets, missions, and bestiary.
+- **Completion tracking** to guide your 100% run: campaign, missions, secret rooms, bestiary, special challenges, builds, difficulties, and levers.
 
 ## Play on mobile
 
-The playfield adapts to your screen and includes an **on-screen joystick** plus dedicated buttons for attack, dash, parry, interaction, and pause. Both portrait and landscape layouts are supported.
+The playfield adapts to your screen and includes an **on-screen joystick** plus dedicated buttons for attack, dash, parry, interaction, and pause. Both portrait and landscape layouts are supported. Accidental page zoom during gameplay (double-tap or pinch on the controls) is disabled mid-game; menus remain zoomable.
 
 On iPhone or iPad:
 
@@ -120,6 +120,28 @@ For publishing or Supabase setup, see the [deployment guide](DEPLOYMENT.md).
 
 ## Updates
 
+### V1.1.2 (November 25, 2026)
+
+- Black screen fixed (iPhone, macOS, Windows): missing `</div>` in `#victory-screen` — the interface and canvas were nested inside a hidden screen
+- « MAX » HP label now reserved for the reached 300 HP cap (menu and in-game HUD), aligned with other stats
+- Lever counter « Levers X / 10 » added to the Progression & Challenges panel (stat at the top + row in advanced stats)
+- Accidental touch zoom fixed during gameplay (hardened viewport, touch-action, iOS gestures blocked, text selection disabled); menus remain zoomable
+- Service worker cache bumped to v5: updates are now properly served on iPhone/Android (old cache purged)
+- Local test server with caching disabled (`Serveur-Test-Iphone.command`): Safari always reloads the latest version
+- 100% completion verified as attainable: exact weights, 10 generated levers, recursive side mission working
+- Speed-run timer based on `performance.now()`, strict CSP, local timezone for the daily challenge
+- Parry e2e test stabilized (widened polling window)
+
+### V1.1.1 (November 21, 2026)
+
+- Paladin "Absorbing Shield" implemented: 25% chance to block incoming hit
+- AudioContext resume fixed (playUiTone, startAmbientMusic, playCue async with await)
+- validateImportedSave relaxed for old saves (buildModifiers, shopUpgrades optional)
+- Separation vector optimized: spatial hash grid (80px cells) O(n²) → O(n)
+- runtimeError reset to null on successful loadLevel()
+- FR typos: "déjà", "Récupère", "Obtient", "Subit" (3rd person consistency)
+- HTML: orphan div removed, cloud-save-section wrapper, shop verbs harmonized
+
 ### V1.1.0 (November 12, 2026)
 
 - Starting HP fixed at 120 (base)
@@ -130,7 +152,7 @@ For publishing or Supabase setup, see the [deployment guide](DEPLOYMENT.md).
 - « Collectionneur complet » badge when all 19 shop products are purchased
 - « OWNED » button fixed for permanent artifacts in the shop
 - « Game completion » section now visible in the title menu
-- Version bumped from 1.0.0 to 1.1.0
+- Version bumped from 1.0.0 to 1.1.1
 
 ### V1.0.0 (November 11, 2026)
 
