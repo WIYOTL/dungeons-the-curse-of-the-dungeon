@@ -1,6 +1,6 @@
 // Marqueur de build : affiché dans le pied de l'écran titre. Si ce libellé n'apparaît pas
 // sur l'appareil, le navigateur exécute un js/game-runtime.js périmé (cache).
-window.__DUNGEONS_BUILD = '1.1.2-build7-levers';
+window.__DUNGEONS_BUILD = 'V1.1.2';
 
 const touchControlKeys = Object.create(null);
 const touchControlPointers = new Map();
@@ -2688,14 +2688,6 @@ window.addEventListener('error', event => {
 runPhaseOneSelfTests();
 loadGameSave();
 syncOptionsControls();
-const buildStampElement = document.getElementById('build-stamp');
-if (buildStampElement) {
-    const stampParts = [` · build ${window.__DUNGEONS_BUILD}`];
-    stampParts.push(window.__DUNGEONS_SAVE_BUILD ? ` · save ${window.__DUNGEONS_SAVE_BUILD}` : ' · save ?');
-    stampParts.push(saveWritesAuthorized ? ' · storage OK' : ' · storage FAIL');
-    stampParts.push(` · saved levers ${getPersistedLeversCount()}`);
-    buildStampElement.textContent = stampParts.join('');
-}
 const startupPlayButton = document.getElementById('btn-continue');
 if (startupPlayButton) startupPlayButton.disabled = false;
 

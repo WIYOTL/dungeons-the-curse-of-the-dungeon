@@ -1,6 +1,6 @@
 # Dungeons: The Curse of the Dungeon <sup>WEB Edition</sup>
 
-**Français** · [English](README_en.md) · **Version 1.1.2**
+**Français** · [English](README_en.md) · **V1.1.2**
 
 > **Entrez dans le donjon. Brisez la malédiction.**<br>
 > Un jeu d’action fantastique jouable dans votre navigateur, sur ordinateur comme sur mobile.

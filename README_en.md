@@ -1,6 +1,6 @@
 # Dungeons: The Curse of the Dungeon <sup>WEB Edition</sup>
 
-[Français](README.md) · **English** · **Version 1.1.2**
+[Français](README.md) · **English** · **V1.1.2**
 
 > **Enter the dungeon. Break the curse.**<br>
 > A fantasy action game you can play in your browser on desktop or mobile.

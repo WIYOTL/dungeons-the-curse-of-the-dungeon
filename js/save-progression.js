@@ -1,4 +1,4 @@
-window.__DUNGEONS_SAVE_BUILD = 'save6-levers';
+window.__DUNGEONS_SAVE_BUILD = 'V1.1.2';
 let saveWritesAuthorized = false;
 function getPersistedLeversCount() {
     try {
